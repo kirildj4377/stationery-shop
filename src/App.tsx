@@ -12,6 +12,8 @@ export default function App() {
   const [visibleCount, setVisibleCount] = useState<number>(15);
   const [search, setSearch] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
+const [isDeliveryOpen, setIsDeliveryOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -72,12 +74,21 @@ export default function App() {
       <header className="bg-white shadow-sm sticky top-0 z-10 p-4 border-b-2 border-blue-500">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <h1 className="text-xl md:text-2xl font-black text-blue-600">КАНЦТОВАРИ 🇺🇦</h1>
-          <button 
-            onClick={() => setIsCartOpen(true)}
-            className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold flex items-center gap-2 hover:bg-blue-700 transition"
-          >
-            Кошик 🛒 <span className="bg-white text-blue-600 px-2 rounded-full text-sm">{cart.length}</span>
-          </button>
+          <div className="max-w-6xl mx-auto flex justify-between items-center px-4">
+  <h1 className="text-xl md:text-2xl font-black text-blue-600">КАНЦТОВАРИ 🇺🇦</h1>
+  
+  <div className="flex items-center gap-4">
+    <button onClick={() => setIsAboutOpen(true)} className="hidden md:block text-sm font-bold text-gray-600 hover:text-blue-600">Про нас</button>
+    <button onClick={() => setIsDeliveryOpen(true)} className="hidden md:block text-sm font-bold text-gray-600 hover:text-blue-600">Доставка</button>
+    
+    <button 
+      onClick={() => setIsCartOpen(true)}
+      className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold flex items-center gap-2 hover:bg-blue-700 transition"
+    >
+      Кошик 🛒 <span className="bg-white text-blue-600 px-2 rounded-full text-sm">{cart.length}</span>
+    </button>
+  </div>
+</div>
         </div>
       </header>
 
@@ -174,5 +185,35 @@ export default function App() {
         </div>
       )}
     </div>
+    {/* Модалка ПРО НАС */}
+{isAboutOpen && (
+  <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div className="bg-white w-full max-w-lg rounded-3xl p-8 shadow-2xl relative">
+      <button onClick={() => setIsAboutOpen(false)} className="absolute top-4 right-6 text-3xl">&times;</button>
+      <h2 className="text-2xl font-black mb-4 text-blue-600">Про наш магазин 📝</h2>
+      <p className="text-gray-600 leading-relaxed">
+        Ми — ваш надійний помічник у світі канцелярії. Пропонуємо широкий асортимент товарів для школи, офісу та творчості. Наша мета — забезпечити вас якісними інструментами для навчання та роботи за найкращими цінами в Україні.
+      </p>
+      <button onClick={() => setIsAboutOpen(false)} className="w-full mt-6 bg-blue-600 text-white py-3 rounded-xl font-bold">Зрозуміло</button>
+    </div>
+  </div>
+)}
+
+{/* Модалка ДОСТАВКА */}
+{isDeliveryOpen && (
+  <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+    <div className="bg-white w-full max-w-lg rounded-3xl p-8 shadow-2xl relative">
+      <button onClick={() => setIsDeliveryOpen(false)} className="absolute top-4 right-6 text-3xl">&times;</button>
+      <h2 className="text-2xl font-black mb-4 text-blue-600">Доставка та оплата 🚚</h2>
+      <ul className="text-gray-600 space-y-3">
+        <li className="flex items-center gap-2">📍 <strong>Нова Пошта:</strong> Відправка кожного дня.</li>
+        <li className="flex items-center gap-2">📍 <strong>Укрпошта:</strong> Відправка 3 рази на тиждень.</li>
+        <li className="flex items-center gap-2">💳 <strong>Оплата:</strong> На картку або при отриманні.</li>
+        <li className="flex items-center gap-2">⏱ <strong>Терміни:</strong> 1-3 дні по всій Україні.</li>
+      </ul>
+      <button onClick={() => setIsDeliveryOpen(false)} className="w-full mt-6 bg-blue-600 text-white py-3 rounded-xl font-bold">Окей</button>
+    </div>
+  </div>
+)}
   );
 }
