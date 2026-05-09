@@ -66,7 +66,7 @@ export default function App() {
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-50 p-4 border-b-2 border-blue-500">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <h1 className="text-xl md:text-2xl font-black text-blue-600">КАНЦТОВАРИ 🇺🇦</h1>
+          <h1 className="text-xl md:text-2xl font-black text-blue-600">Канцелярія 🇺🇦</h1>
           <div className="flex items-center gap-3 md:gap-6">
             <button onClick={() => setIsAboutOpen(true)} className="hidden sm:block text-sm font-bold text-gray-600 hover:text-blue-600 transition">Про нас</button>
             <button onClick={() => setIsDeliveryOpen(true)} className="hidden sm:block text-sm font-bold text-gray-600 hover:text-blue-600 transition">Доставка</button>
@@ -198,7 +198,6 @@ export default function App() {
             <h2 className="text-2xl font-black mb-4 text-blue-600">Доставка та оплата 🚚</h2>
             <div className="text-gray-600 space-y-4 mb-6">
               <p>📍 <strong>Нова Пошта:</strong> Відправка щодня.</p>
-              <p>📍 <strong>Укрпошта:</strong> Відправка Пн, Ср, Пт.</p>
               <p>💳 <strong>Оплата:</strong> На картку Monobank/ПриватБанк або при отриманні.</p>
             </div>
             <button onClick={() => setIsDeliveryOpen(false)} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black">Окей</button>
