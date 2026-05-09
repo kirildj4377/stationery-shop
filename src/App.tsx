@@ -6,12 +6,12 @@ const GOOGLE_SHEET_CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhmHMwhHGRSFSsptZUHbQv0CWRmckGz6OrhBsqra4wwsPZ1uweXGhq02Ba0bSeYw4cWT44q160EBEx/pub?output=csv';
 
 export default function App() {
-  const [products, setProducts] = useState([]);
-  const [cart, setCart] = useState([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [cart, setCart] = useState<any[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(15);
-  const [search, setSearch] = useState('');
-  const [phone, setPhone] = useState('');
+  const [search, setSearch] = useState<any[]>('');
+  const [phone, setPhone] = useState<any[]>('');
 
   useEffect(() => {
     const fetchData = async () => {
