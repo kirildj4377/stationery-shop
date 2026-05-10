@@ -15,6 +15,7 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [phone, setPhone] = useState('');
   const [userName, setUserName] = useState('');
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -31,35 +32,40 @@ export default function App() {
   const removeFromCart = (index) => setCart(cart.filter((_, i) => i !== index));
 
   const sendOrder = async () => {
-    if (userName.length < 2) {
-    alert('Будь ласка, введіть ваше ім\'я');
+  if (userName.length < 2) {
+    alert('Будь ласка, введіть ваше ім\'я'); // Можна теж замінити пізніше, але для замовлення це база
     return;
   }
-    if (phone.length < 10) {
-      alert('Будь ласка, введіть коректний номер телефону');
-      return;
-    }
+  if (phone.length < 10) {
+    alert('Будь ласка, введіть коректний номер телефону');
+    return;
+  }
 
-    const token = '8731756289:AAHBep4snR4J_rxALxpW-6UK0xAc6vJQLio';
+  const token = '8731756289:AAHBep4snR4J_rxALxpW-6UK0xAc6vJQLio';
     const chatId = '327225760';
+  
+  const itemsList = cart.map(item => {
+    const title = item.title || item.Название || item.Найменування || 'Товар';
+    const p = item.price || item.Цена || item.Ціна || '0';
+    return `- ${title}: ${p} грн`;
+  }).join('\n');
+
+  const total = cart.reduce((sum, item) => sum + Number(item.price || item.Цена || item.Ціна || 0), 0);
+  const message = `🛒 НОВЕ ЗАМОВЛЕННЯ\n\n👤 Клієнт: ${userName}\n📞 Телефон: ${phone}\n\n📦 Товари:\n${itemsList}\n\n💰 РАЗОМ: ${total} грн`;
+
+  try {
+    await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, { chat_id: chatId, text: message });
     
-    const itemsList = cart.map(item => {
-      const title = item.title || item.Название || item.Найменування || 'Товар';
-      const p = item.price || item.Цена || item.Ціна || '0';
-      return `- ${title}: ${p} грн`;
-    }).join('\n');
-
-    const total = cart.reduce((sum, item) => sum + Number(item.price || item.Цена || item.Ціна || 0), 0);
-    const message = `🛒 НОВЕ ЗАМОВЛЕННЯ\n\n👤 Клієнт: ${userName}\n📞 Телефон: ${phone}\n\n📦 Товари:\n${itemsList}\n\n💰 РАЗОМ: ${total} грн`;
-
-    try {
-      await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, { chat_id: chatId, text: message });
-      alert('Замовлення надіслано! Ми зв\'яжемося з вами.');
-      setCart([]);
-      setPhone('');
-      setIsCartOpen(false);
-    } catch (e) { alert('Помилка при відправці'); }
-  };
+    // ЗАМІСТЬ ALERT:
+    setCart([]);
+    setPhone('');
+    setUserName('');
+    setIsCartOpen(false);
+    setIsSuccessOpen(true); // Відкриваємо наше красиве вікно
+  } catch (e) { 
+    alert('Помилка при відправці'); 
+  }
+};
 
   const filtered = products.filter(p => {
     const title = (p.title || p.Название || p.Найменування || '').toString();
@@ -140,6 +146,27 @@ export default function App() {
          <p className="text-gray-400 text-xs">© 2026 Магазин Канцтоварів. Всі права захищені.</p>
       </footer>
 
+      {/* МОДАЛКА УСПІХУ */}
+{isSuccessOpen && (
+  <div className="fixed inset-0 bg-black/60 z-[120] flex items-center justify-center p-4 backdrop-blur-md">
+    <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl text-center transform transition-all animate-bounce-short">
+      <div className="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">
+        ✓
+      </div>
+      <h2 className="text-2xl font-black mb-2">Дякуємо, {userName}!</h2>
+      <p className="text-gray-500 mb-8">
+        Ваше замовлення прийнято. Ми зв'яжемося з вами найближчим часом для підтвердження.
+      </p>
+      <button 
+        onClick={() => setIsSuccessOpen(false)} 
+        className="w-full bg-green-500 text-white py-4 rounded-2xl font-black shadow-lg shadow-green-200 hover:bg-green-600 transition-all"
+      >
+        Чудово!
+      </button>
+    </div>
+  </div>
+)}
+      
       {/* МОДАЛКА КОРЗИНИ */}
       {isCartOpen && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex justify-end backdrop-blur-sm">
