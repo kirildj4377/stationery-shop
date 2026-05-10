@@ -14,6 +14,7 @@ export default function App() {
   const [visibleCount, setVisibleCount] = useState(15);
   const [search, setSearch] = useState('');
   const [phone, setPhone] = useState('');
+  const [userName, setUserName] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -30,6 +31,10 @@ export default function App() {
   const removeFromCart = (index) => setCart(cart.filter((_, i) => i !== index));
 
   const sendOrder = async () => {
+    if (userName.length < 2) {
+    alert('Будь ласка, введіть ваше ім\'я');
+    return;
+  }
     if (phone.length < 10) {
       alert('Будь ласка, введіть коректний номер телефону');
       return;
@@ -45,7 +50,7 @@ export default function App() {
     }).join('\n');
 
     const total = cart.reduce((sum, item) => sum + Number(item.price || item.Цена || item.Ціна || 0), 0);
-    const message = `🛒 НОВЕ ЗАМОВЛЕННЯ\n\n👤 Телефон: ${phone}\n\n📦 Товари:\n${itemsList}\n\n💰 РАЗОМ: ${total} грн`;
+    const message = `🛒 НОВЕ ЗАМОВЛЕННЯ\n\n👤 Клієнт: ${userName}\n📞 Телефон: ${phone}\n\n📦 Товари:\n${itemsList}\n\n💰 РАЗОМ: ${total} грн`;
 
     try {
       await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, { chat_id: chatId, text: message });
@@ -158,11 +163,29 @@ export default function App() {
             </div>
             {cart.length > 0 && (
               <div className="border-t pt-6 mt-4">
-                <div className="mb-4 text-left">
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Номер телефону для зв'язку:</label>
-                  <input type="tel" placeholder="+380" value={phone} onChange={(e) => setPhone(e.target.value)}
-                    className="w-full p-4 border-2 border-blue-100 rounded-2xl focus:border-blue-600 outline-none transition-all shadow-inner" />
-                </div>
+                <div className="mb-4 space-y-4 text-left">
+  <div>
+    <label className="block text-sm font-bold text-gray-700 mb-2">Ваше ім'я:</label>
+    <input 
+      type="text" 
+      placeholder="Як до вас звертатися?" 
+      value={userName} 
+      onChange={(e) => setUserName(e.target.value)}
+      className="w-full p-4 border-2 border-blue-100 rounded-2xl focus:border-blue-600 outline-none transition-all shadow-inner" 
+    />
+  </div>
+  
+  <div>
+    <label className="block text-sm font-bold text-gray-700 mb-2">Номер телефону:</label>
+    <input 
+      type="tel" 
+      placeholder="+380" 
+      value={phone} 
+      onChange={(e) => setPhone(e.target.value)}
+      className="w-full p-4 border-2 border-blue-100 rounded-2xl focus:border-blue-600 outline-none transition-all shadow-inner" 
+    />
+  </div>
+</div>
                 <div className="flex justify-between text-2xl font-black mb-6 px-1 text-blue-600">
                   <span className="text-gray-800">Разом:</span>
                   <span>{cart.reduce((sum, item) => sum + Number(item.price || item.Цена || item.Ціна || 0), 0)} грн</span>
