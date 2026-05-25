@@ -16,6 +16,7 @@ export default function App() {
   const [phone, setPhone] = useState('');
   const [userName, setUserName] = useState('');
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+  const [address, setAddress] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -33,16 +34,21 @@ export default function App() {
 
   const sendOrder = async () => {
   if (userName.length < 2) {
-    alert('Будь ласка, введіть ваше ім\'я'); // Можна теж замінити пізніше, але для замовлення це база
+    alert('Будь ласка, введіть ваше ім\'я');
     return;
   }
   if (phone.length < 10) {
     alert('Будь ласка, введіть коректний номер телефону');
     return;
   }
+  if (address.length < 5) {
+    alert('Будь ласка, введіть адресу доставки (Місто, номер відділення або вулицю)');
+    return;
+  }
 
-  const token = '8731756289:AAHBep4snR4J_rxALxpW-6UK0xAc6vJQLio';
-    const chatId = '-5236520700';
+  // Якщо використовуєш масив id з минулого кроку, залишай його, або поверни один chatId
+  const token = 'ВАШ_ТОКЕН'; 
+  const chatId = 'ВАШ_ID';
   
   const itemsList = cart.map(item => {
     const title = item.title || item.Название || item.Найменування || 'Товар';
@@ -51,17 +57,20 @@ export default function App() {
   }).join('\n');
 
   const total = cart.reduce((sum, item) => sum + Number(item.price || item.Цена || item.Ціна || 0), 0);
-  const message = `🛒 НОВЕ ЗАМОВЛЕННЯ\n\n👤 Клієнт: ${userName}\n📞 Телефон: ${phone}\n\n📦 Товари:\n${itemsList}\n\n💰 РАЗОМ: ${total} грн`;
+  
+  // Додаємо Адресу в повідомлення
+  const message = `🛒 НОВЕ ЗАМОВЛЕННЯ\n\n👤 Клієнт: ${userName}\n📞 Телефон: ${phone}\n🚚 Адреса: ${address}\n\n📦 Товари:\n${itemsList}\n\n💰 РАЗОМ: ${total} грн`;
 
   try {
+    // Тут твій код відправки (один запит або через Promise.all для кількох людей)
     await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, { chat_id: chatId, text: message });
     
-    // ЗАМІСТЬ ALERT:
     setCart([]);
     setPhone('');
     setUserName('');
+    setAddress(''); // Очищуємо поле адреси після замовлення
     setIsCartOpen(false);
-    setIsSuccessOpen(true); // Відкриваємо наше красиве вікно
+    setIsSuccessOpen(true);
   } catch (e) { 
     alert('Помилка при відправці'); 
   }
@@ -210,6 +219,16 @@ export default function App() {
       value={phone} 
       onChange={(e) => setPhone(e.target.value)}
       className="w-full p-4 border-2 border-blue-100 rounded-2xl focus:border-blue-600 outline-none transition-all shadow-inner" 
+    />
+  </div>
+                  <div>
+    <label className="block text-sm font-bold text-gray-700 mb-2">Адреса доставки (Місто, № відділення Нової Пошти):</label>
+    <textarea 
+      rows={2}
+      placeholder="Наприклад: Київ, Нова Пошта №15 або вул. Хрещатик 1, кв. 5" 
+      value={address} 
+      onChange={(e) => setAddress(e.target.value)}
+      className="w-full p-4 border-2 border-blue-100 rounded-2xl focus:border-blue-600 outline-none transition-all shadow-inner resize-none" 
     />
   </div>
 </div>
