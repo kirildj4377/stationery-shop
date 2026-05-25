@@ -42,7 +42,7 @@ export default function App() {
   }
 
   const token = '8731756289:AAHBep4snR4J_rxALxpW-6UK0xAc6vJQLio';
-    const chatId = '327225760';
+    const chatId = '-5236520700';
   
   const itemsList = cart.map(item => {
     const title = item.title || item.Название || item.Найменування || 'Товар';
