@@ -5,6 +5,48 @@ import Papa from 'papaparse';
 
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhmHMwhHGRSFSsptZUHbQv0CWRmckGz6OrhBsqra4wwsPZ1uweXGhq02Ba0bSeYw4cWT44q160EBEx/pub?output=csv';
 
+// Окремий компонент для картки товару із власним лічильником кількості
+function ProductCard({ item, onAddToCart }) {
+  const [quantity, setQuantity] = useState(1);
+
+  const title = item.title || item.Название || item.Найменування || 'Товар';
+  const price = item.price || item.Цена || item.Ціна || '0';
+  const image = item.image || item.Картинка || item.Фото || '';
+
+  const handlePlus = () => setQuantity(prev => prev + 1);
+  const handleMinus = () => setQuantity(prev => prev > 1 ? prev - 1 : 1);
+
+  return (
+    <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-xl transition-all">
+      <div className="h-40 w-full mb-4 flex items-center justify-center bg-gray-50 rounded-2xl overflow-hidden p-2">
+        <img src={image} className="max-h-full max-w-full object-contain hover:scale-105 transition-transform" alt={title} />
+      </div>
+      <h2 className="font-bold text-gray-800 text-xs md:text-sm mb-3 line-clamp-2 h-10">{title}</h2>
+      
+      <div className="flex flex-col gap-3">
+        <span className="text-lg md:text-xl font-black text-blue-600">{price} грн</span>
+        
+        {/* Кнопки перемикання кількості */}
+        <div className="flex items-center justify-between bg-gray-100 rounded-xl p-1">
+          <button onClick={handleMinus} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg font-black text-gray-600 hover:bg-gray-200 active:scale-95 transition-all">-</button>
+          <span className="font-bold text-sm text-gray-800">{quantity} шт</span>
+          <button onClick={handlePlus} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg font-black text-gray-600 hover:bg-gray-200 active:scale-95 transition-all">+</button>
+        </div>
+
+        <button 
+          onClick={() => {
+            onAddToCart(item, quantity);
+            setQuantity(1); // Скидаємо лічильник до 1 після додавання
+          }}
+          className="w-full bg-blue-600 text-white font-bold py-2 rounded-xl hover:bg-blue-700 transition-all text-sm shadow-md"
+        >
+          У кошик
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
@@ -29,7 +71,21 @@ export default function App() {
     fetchData();
   }, []);
 
-  const addToCart = (item) => setCart([...cart, item]);
+  const addToCart = (item: any, quantity: number) => {
+  // Перевіряємо, чи є вже такий товар в кошику (за назвою чи id)
+  const itemTitle = item.title || item.Название || item.Найменування;
+  const existingItemIdx = cart.findIndex(cartItem => (cartItem.title || cartItem.Название || cartItem.Найменування) === itemTitle);
+
+  if (existingItemIdx > -1) {
+    // Якщо товар є — збільшуємо його кількість
+    const newCart = [...cart];
+    newCart[existingItemIdx].count += quantity;
+    setCart(newCart);
+  } else {
+    // Якщо немає — додаємо як новий об'єкт і записуємо туди поле count
+    setCart([...cart, { ...item, count: quantity }]);
+  }
+};
   const removeFromCart = (index) => setCart(cart.filter((_, i) => i !== index));
 
   const sendOrder = async () => {
@@ -112,6 +168,7 @@ export default function App() {
       {/* Сітка товарів */}
       <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 p-4">
         {filtered.slice(0, visibleCount).map((item, idx) => {
+          <ProductCard key={idx} item={item} onAddToCart={addToCart} />;
           const title = item.title || item.Название || item.Найменування || 'Товар';
           const price = item.price || item.Цена || item.Ціна || '0';
           const image = item.image || item.Картинка || item.Фото || '';
@@ -196,7 +253,8 @@ export default function App() {
                   <div key={i} className="flex justify-between items-center bg-gray-50 p-3 rounded-2xl border border-gray-100">
                     <span className="text-sm font-bold flex-1 pr-2 line-clamp-2">{item.title || item.Название || item.Найменування}</span>
                     <div className="flex items-center gap-3">
-                      <span className="font-black text-blue-600 whitespace-nowrap text-sm">{item.price || item.Цена || item.Ціна} грн</span>
+                      <span className="text-xs text-gray-400 whitespace-nowrap">{item.count} шт ×</span>
+                      <span className="font-black text-blue-600 whitespace-nowrap text-sm">{(Number(item.price || item.Цена || item.Ціна || 0) * item.count)} грн</span>
                       <button onClick={() => removeFromCart(i)} className="text-red-400 hover:text-red-600 transition text-sm">✕</button>
                     </div>
                   </div>
@@ -229,7 +287,10 @@ export default function App() {
 
                 <div className="flex justify-between text-xl font-black mb-4 px-1 text-blue-600 border-t pt-2">
                   <span className="text-gray-800">Разом:</span>
-                  <span>{cart.reduce((sum, item) => sum + Number(item.price || item.Цена || item.Ціна || 0), 0)} грн</span>
+                  const total = cart.reduce((sum, item) => {
+                  const val = item.price || item.Цена || item.Ціна || 0;
+                  return sum + (Number(val) * item.count);
+                  }, 0);
                 </div>
                 
                 <button onClick={sendOrder} className="w-full bg-blue-600 text-white font-black py-3.5 rounded-2xl text-md shadow-lg hover:bg-blue-700 active:scale-95 transition-all">
