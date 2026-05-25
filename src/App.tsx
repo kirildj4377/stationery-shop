@@ -5,16 +5,13 @@ import Papa from 'papaparse';
 
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhmHMwhHGRSFSsptZUHbQv0CWRmckGz6OrhBsqra4wwsPZ1uweXGhq02Ba0bSeYw4cWT44q160EBEx/pub?output=csv';
 
-// Окремий компонент для картки товару із власним лічильником кількості
+// Компонент картки товару з власним лічильником
 function ProductCard({ item, onAddToCart }) {
   const [quantity, setQuantity] = useState(1);
 
   const title = item.title || item.Название || item.Найменування || 'Товар';
   const price = item.price || item.Цена || item.Ціна || '0';
   const image = item.image || item.Картинка || item.Фото || '';
-
-  const handlePlus = () => setQuantity(prev => prev + 1);
-  const handleMinus = () => setQuantity(prev => prev > 1 ? prev - 1 : 1);
 
   return (
     <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-xl transition-all">
@@ -26,17 +23,17 @@ function ProductCard({ item, onAddToCart }) {
       <div className="flex flex-col gap-3">
         <span className="text-lg md:text-xl font-black text-blue-600">{price} грн</span>
         
-        {/* Кнопки перемикання кількості */}
+        {/* Кнопки кількості */}
         <div className="flex items-center justify-between bg-gray-100 rounded-xl p-1">
-          <button onClick={handleMinus} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg font-black text-gray-600 hover:bg-gray-200 active:scale-95 transition-all">-</button>
+          <button onClick={() => setQuantity(q => q > 1 ? q - 1 : 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg font-black text-gray-600 hover:bg-gray-200 active:scale-95 transition-all">-</button>
           <span className="font-bold text-sm text-gray-800">{quantity} шт</span>
-          <button onClick={handlePlus} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg font-black text-gray-600 hover:bg-gray-200 active:scale-95 transition-all">+</button>
+          <button onClick={() => setQuantity(q => q + 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg font-black text-gray-600 hover:bg-gray-200 active:scale-95 transition-all">+</button>
         </div>
 
         <button 
           onClick={() => {
             onAddToCart(item, quantity);
-            setQuantity(1); // Скидаємо лічильник до 1 після додавання
+            setQuantity(1);
           }}
           className="w-full bg-blue-600 text-white font-bold py-2 rounded-xl hover:bg-blue-700 transition-all text-sm shadow-md"
         >
@@ -53,11 +50,13 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isDeliveryOpen, setIsDeliveryOpen] = useState(false);
+  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(15);
   const [search, setSearch] = useState('');
-  const [phone, setPhone] = useState('');
+  
+  // Поля оформлення
   const [userName, setUserName] = useState('');
-  const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+  const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
 
   useEffect(() => {
@@ -71,66 +70,47 @@ export default function App() {
     fetchData();
   }, []);
 
-  const addToCart = (item: any, quantity: number) => {
-  // Перевіряємо, чи є вже такий товар в кошику (за назвою чи id)
-  const itemTitle = item.title || item.Название || item.Найменування;
-  const existingItemIdx = cart.findIndex(cartItem => (cartItem.title || cartItem.Название || cartItem.Найменування) === itemTitle);
+  const addToCart = (item, quantity) => {
+    const itemTitle = item.title || item.Название || item.Найменування;
+    const existingIdx = cart.findIndex(cItem => (cItem.title || cItem.Название || cItem.Найменування) === itemTitle);
 
-  if (existingItemIdx > -1) {
-    // Якщо товар є — збільшуємо його кількість
-    const newCart = [...cart];
-    newCart[existingItemIdx].count += quantity;
-    setCart(newCart);
-  } else {
-    // Якщо немає — додаємо як новий об'єкт і записуємо туди поле count
-    setCart([...cart, { ...item, count: quantity }]);
-  }
-};
+    if (existingIdx > -1) {
+      const newCart = [...cart];
+      newCart[existingIdx].count += quantity;
+      setCart(newCart);
+    } else {
+      setCart([...cart, { ...item, count: quantity }]);
+    }
+  };
+
   const removeFromCart = (index) => setCart(cart.filter((_, i) => i !== index));
 
   const sendOrder = async () => {
-  if (userName.length < 2) {
-    alert('Будь ласка, введіть ваше ім\'я');
-    return;
-  }
-  if (phone.length < 10) {
-    alert('Будь ласка, введіть коректний номер телефону');
-    return;
-  }
-  if (address.length < 5) {
-    alert('Будь ласка, введіть адресу доставки (Місто, номер відділення або вулицю)');
-    return;
-  }
+    if (userName.length < 2) { return alert("Будь ласка, введіть ваше ім'я"); }
+    if (phone.length < 10) { return alert("Будь ласка, введіть коректний номер телефону"); }
+    if (address.length < 4) { return alert("Будь ласка, введіть адресу доставки"); }
 
-  // Якщо використовуєш масив id з минулого кроку, залишай його, або поверни один chatId
-  const token = 'ВАШ_ТОКЕН'; 
-  const chatId = 'ВАШ_ID';
-  
-  const itemsList = cart.map(item => {
-    const title = item.title || item.Название || item.Найменування || 'Товар';
-    const p = item.price || item.Цена || item.Ціна || '0';
-    return `- ${title}: ${p} грн`;
-  }).join('\n');
-
-  const total = cart.reduce((sum, item) => sum + Number(item.price || item.Цена || item.Ціна || 0), 0);
-  
-  // Додаємо Адресу в повідомлення
-  const message = `🛒 НОВЕ ЗАМОВЛЕННЯ\n\n👤 Клієнт: ${userName}\n📞 Телефон: ${phone}\n🚚 Адреса: ${address}\n\n📦 Товари:\n${itemsList}\n\n💰 РАЗОМ: ${total} грн`;
-
-  try {
-    // Тут твій код відправки (один запит або через Promise.all для кількох людей)
-    await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, { chat_id: chatId, text: message });
+    const token = '8731756289:AAHBep4snR4J_rxALxpW-6UK0xAc6vJQLio'; // Встав сюди свій токен
+    const chatId = '-5236520700';     // Встав сюди свій ID чату/групи
     
-    setCart([]);
-    setPhone('');
-    setUserName('');
-    setAddress(''); // Очищуємо поле адреси після замовлення
-    setIsCartOpen(false);
-    setIsSuccessOpen(true);
-  } catch (e) { 
-    alert('Помилка при відправці'); 
-  }
-};
+    const itemsList = cart.map(item => {
+      const title = item.title || item.Название || item.Найменування || 'Товар';
+      const p = item.price || item.Цена || item.Ціна || '0';
+      return `- ${title} (${item.count} шт) — ${(Number(p) * item.count)} грн`;
+    }).join('\n');
+
+    const total = cart.reduce((sum, item) => sum + (Number(item.price || item.Цена || item.Ціна || 0) * item.count), 0);
+    const message = `🛒 НОВЕ ЗАМОВЛЕННЯ\n\n👤 Клієнт: ${userName}\n📞 Телефон: ${phone}\n🚚 Адреса: ${address}\n\n📦 Товари:\n${itemsList}\n\n💰 РАЗОМ: ${total} грн`;
+
+    try {
+      await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, { chat_id: chatId, text: message });
+      setCart([]);
+      setPhone('');
+      setAddress('');
+      setIsCartOpen(false);
+      setIsSuccessOpen(true);
+    } catch (e) { alert('Помилка при відправці замовлення'); }
+  };
 
   const filtered = products.filter(p => {
     const title = (p.title || p.Название || p.Найменування || '').toString();
@@ -142,7 +122,7 @@ export default function App() {
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-50 p-4 border-b-2 border-blue-500">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <h1 className="text-xl md:text-2xl font-black text-blue-600">Канцелярія 🇺🇦</h1>
+          <h1 className="text-xl md:text-2xl font-black text-blue-600">КАНЦТОВАРИ 🇺🇦</h1>
           <div className="flex items-center gap-3 md:gap-6">
             <button onClick={() => setIsAboutOpen(true)} className="hidden sm:block text-sm font-bold text-gray-600 hover:text-blue-600 transition">Про нас</button>
             <button onClick={() => setIsDeliveryOpen(true)} className="hidden sm:block text-sm font-bold text-gray-600 hover:text-blue-600 transition">Доставка</button>
@@ -167,33 +147,12 @@ export default function App() {
 
       {/* Сітка товарів */}
       <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 p-4">
-        {filtered.slice(0, visibleCount).map((item, idx) => {
-          <ProductCard key={idx} item={item} onAddToCart={addToCart} />;
-          const title = item.title || item.Название || item.Найменування || 'Товар';
-          const price = item.price || item.Цена || item.Ціна || '0';
-          const image = item.image || item.Картинка || item.Фото || '';
-          
-          return (
-            <div key={idx} className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-xl transition-all">
-              <div className="h-40 w-full mb-4 flex items-center justify-center bg-gray-50 rounded-2xl overflow-hidden p-2">
-                <img src={image} className="max-h-full max-w-full object-contain hover:scale-105 transition-transform" alt={title} />
-              </div>
-              <h2 className="font-bold text-gray-800 text-xs md:text-sm mb-3 line-clamp-2 h-10">{title}</h2>
-              <div className="flex flex-col gap-3">
-                <span className="text-lg md:text-xl font-black text-blue-600">{price} грн</span>
-                <button 
-                  onClick={() => addToCart(item)}
-                  className="w-full bg-blue-50 text-blue-600 font-bold py-2 rounded-xl hover:bg-blue-600 hover:text-white transition-all text-sm"
-                >
-                  У кошик
-                </button>
-              </div>
-            </div>
-          );
-        })}
+        {filtered.slice(0, visibleCount).map((item, idx) => (
+          <ProductCard key={idx} item={item} onAddToCart={addToCart} />
+        ))}
       </div>
 
-      {/* Кнопка "Показати ще" */}
+      {/* Показати ще */}
       {visibleCount < filtered.length && (
         <button 
           onClick={() => setVisibleCount(v => v + 15)}
@@ -212,39 +171,16 @@ export default function App() {
          <p className="text-gray-400 text-xs">© 2026 Магазин Канцтоварів. Всі права захищені.</p>
       </footer>
 
-      {/* МОДАЛКА УСПІХУ */}
-{isSuccessOpen && (
-  <div className="fixed inset-0 bg-black/60 z-[120] flex items-center justify-center p-4 backdrop-blur-md">
-    <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl text-center transform transition-all animate-bounce-short">
-      <div className="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">
-        ✓
-      </div>
-      <h2 className="text-2xl font-black mb-2">Дякуємо, {userName}!</h2>
-      <p className="text-gray-500 mb-8">
-        Ваше замовлення прийнято. Ми зв'яжемося з вами найближчим часом для підтвердження.
-      </p>
-      <button 
-        onClick={() => setIsSuccessOpen(false)} 
-        className="w-full bg-green-500 text-white py-4 rounded-2xl font-black shadow-lg shadow-green-200 hover:bg-green-600 transition-all"
-      >
-        Чудово!
-      </button>
-    </div>
-  </div>
-)}
-      
-     {/* МОДАЛКА КОРЗИНИ */}
+      {/* МОДАЛКА КОРЗИНИ */}
       {isCartOpen && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex justify-end backdrop-blur-sm">
           <div className="bg-white w-full max-w-md h-full p-6 shadow-2xl flex flex-col justify-between">
-            
-            {/* Шапка кошика */}
             <div className="flex justify-between items-center pb-4 border-b">
               <h2 className="text-2xl font-black">Ваше замовлення</h2>
               <button onClick={() => setIsCartOpen(false)} className="text-3xl hover:text-red-500 transition">&times;</button>
             </div>
             
-            {/* СПИСОК ТОВАРІВ (Тепер він точно поміститься і буде скроллитися) */}
+            {/* Список товарів */}
             <div className="flex-1 overflow-y-auto my-4 pr-1 space-y-3" style={{ maxHeight: 'calc(100vh - 430px)', minHeight: '100px' }}>
               {cart.length === 0 ? (
                 <p className="text-gray-400 text-center mt-10">Кошик порожній...</p>
@@ -262,57 +198,60 @@ export default function App() {
               )}
             </div>
 
-            {/* Нижня частина: Форма та Кнопка замовлення (Завжди притиснута до низу) */}
+            {/* Анкета замовлення */}
             {cart.length > 0 && (
               <div className="border-t pt-4 bg-white">
                 <div className="space-y-3 text-left mb-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1">Ваше ім'я:</label>
                     <input type="text" placeholder="Як до вас звертатися?" value={userName} onChange={(e) => setUserName(e.target.value)}
-                      className="w-full p-3 border-2 border-blue-500/20 rounded-xl focus:border-blue-600 outline-none transition-all text-sm shadow-inner" />
+                      className="w-full p-3 border-2 border-blue-100 rounded-xl focus:border-blue-600 outline-none transition-all text-sm" />
                   </div>
-                  
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1">Номер телефону:</label>
                     <input type="tel" placeholder="+380" value={phone} onChange={(e) => setPhone(e.target.value)}
-                      className="w-full p-3 border-2 border-blue-500/20 rounded-xl focus:border-blue-600 outline-none transition-all text-sm shadow-inner" />
+                      className="w-full p-3 border-2 border-blue-100 rounded-xl focus:border-blue-600 outline-none transition-all text-sm" />
                   </div>
-
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1">Адреса доставки (Місто, № відділення):</label>
                     <input type="text" placeholder="Наприклад: Київ, Нова Пошта №15" value={address} onChange={(e) => setAddress(e.target.value)}
-                      className="w-full p-3 border-2 border-blue-500/20 rounded-xl focus:border-blue-600 outline-none transition-all text-sm shadow-inner" />
+                      className="w-full p-3 border-2 border-blue-100 rounded-xl focus:border-blue-600 outline-none transition-all text-sm" />
                   </div>
                 </div>
 
                 <div className="flex justify-between text-xl font-black mb-4 px-1 text-blue-600 border-t pt-2">
                   <span className="text-gray-800">Разом:</span>
-                  const total = cart.reduce((sum, item) => {
-                  const val = item.price || item.Цена || item.Ціна || 0;
-                  return sum + (Number(val) * item.count);
-                  }, 0);
+                  <span>{cart.reduce((sum, item) => sum + (Number(item.price || item.Цена || item.Ціна || 0) * item.count), 0)} грн</span>
                 </div>
-                
                 <button onClick={sendOrder} className="w-full bg-blue-600 text-white font-black py-3.5 rounded-2xl text-md shadow-lg hover:bg-blue-700 active:scale-95 transition-all">
                   Оформити замовлення
                 </button>
               </div>
             )}
-            
           </div>
         </div>
       )}
-      
+
+      {/* МОДАЛКА УСПІХУ */}
+      {isSuccessOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[120] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl text-center">
+            <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-black">✓</div>
+            <h2 className="text-2xl font-black mb-2">Дякуємо!</h2>
+            <p className="text-gray-500 mb-6 text-sm">Ваше замовлення прийнято. Ми зв'яжемося з вами найближчим часом.</p>
+            <button onClick={() => { setIsSuccessOpen(false); setUserName(''); }} className="w-full bg-green-500 text-white py-3 rounded-xl font-black shadow-lg shadow-green-100 hover:bg-green-600 transition-all">Чудово!</button>
+          </div>
+        </div>
+      )}
+
       {/* МОДАЛКА ПРО НАС */}
       {isAboutOpen && (
         <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white w-full max-w-lg rounded-[2rem] p-8 shadow-2xl relative">
             <button onClick={() => setIsAboutOpen(false)} className="absolute top-4 right-6 text-3xl text-gray-400 hover:text-gray-600">&times;</button>
             <h2 className="text-2xl font-black mb-4 text-blue-600">Про наш магазин 📝</h2>
-            <p className="text-gray-600 leading-relaxed mb-6">
-              Ми — ваш надійний помічник у світі канцелярії. Пропонуємо широкий асортимент товарів для школи, офісу та творчості. Наша мета — забезпечити вас найкращими інструментами за доступними цінами.
-            </p>
-            <button onClick={() => setIsAboutOpen(false)} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black">Зрозуміло</button>
+            <p className="text-gray-600 leading-relaxed mb-6 text-sm">Ми — ваш надійний помічник у світі канцелярії. Пропонуємо широкий асортимент товарів для школи, офісу та творчості.</p>
+            <button onClick={() => setIsAboutOpen(false)} className="w-full bg-blue-600 text-white py-3.5 rounded-2xl font-black">Зрозуміло</button>
           </div>
         </div>
       )}
@@ -323,9 +262,10 @@ export default function App() {
           <div className="bg-white w-full max-w-lg rounded-[2rem] p-8 shadow-2xl relative">
             <button onClick={() => setIsDeliveryOpen(false)} className="absolute top-4 right-6 text-3xl text-gray-400 hover:text-gray-600">&times;</button>
             <h2 className="text-2xl font-black mb-4 text-blue-600">Доставка та оплата 🚚</h2>
-            <div className="text-gray-600 space-y-4 mb-6">
+            <div className="text-gray-600 space-y-3 mb-6 text-sm">
               <p>📍 <strong>Нова Пошта:</strong> Відправка щодня.</p>
-              <p>💳 <strong>Оплата:</strong> На картку Monobank/ПриватБанк або при отриманні.</p>
+              <p>📍 <strong>Укрпошта:</strong> Відправка Пн, Ср, Пт.</p>
+              <p>💳 <strong>Оплата:</strong> На картку або при отриманні.</p>
             </div>
             <button onClick={() => setIsDeliveryOpen(false)} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black">Окей</button>
           </div>
