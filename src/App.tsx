@@ -176,75 +176,72 @@ export default function App() {
   </div>
 )}
       
-      {/* МОДАЛКА КОРЗИНИ */}
+     {/* МОДАЛКА КОРЗИНИ */}
       {isCartOpen && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex justify-end backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md h-full p-6 shadow-2xl flex flex-col">
-            <div className="flex justify-between items-center mb-6">
+          <div className="bg-white w-full max-w-md h-full p-6 shadow-2xl flex flex-col justify-between">
+            
+            {/* Шапка кошика */}
+            <div className="flex justify-between items-center pb-4 border-b">
               <h2 className="text-2xl font-black">Ваше замовлення</h2>
               <button onClick={() => setIsCartOpen(false)} className="text-3xl hover:text-red-500 transition">&times;</button>
             </div>
-            <div className="flex-1 overflow-y-auto pr-2">
-              {cart.length === 0 ? <p className="text-gray-400 text-center mt-10">Кошик порожній...</p> : 
+            
+            {/* СПИСОК ТОВАРІВ (Тепер він точно поміститься і буде скроллитися) */}
+            <div className="flex-1 overflow-y-auto my-4 pr-1 space-y-3" style={{ maxHeight: 'calc(100vh - 430px)', minHeight: '100px' }}>
+              {cart.length === 0 ? (
+                <p className="text-gray-400 text-center mt-10">Кошик порожній...</p>
+              ) : (
                 cart.map((item, i) => (
-                  <div key={i} className="flex justify-between items-center mb-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                    <span className="text-sm font-bold flex-1">{item.title || item.Название || item.Найменування}</span>
-                    <div className="flex items-center gap-4 ml-4">
-                      <span className="font-black text-blue-600 whitespace-nowrap">{item.price || item.Цена || item.Ціна} грн</span>
-                      <button onClick={() => removeFromCart(i)} className="text-red-400 hover:text-red-600 transition">✕</button>
+                  <div key={i} className="flex justify-between items-center bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                    <span className="text-sm font-bold flex-1 pr-2 line-clamp-2">{item.title || item.Название || item.Найменування}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-black text-blue-600 whitespace-nowrap text-sm">{item.price || item.Цена || item.Ціна} грн</span>
+                      <button onClick={() => removeFromCart(i)} className="text-red-400 hover:text-red-600 transition text-sm">✕</button>
                     </div>
                   </div>
                 ))
-              }
+              )}
             </div>
+
+            {/* Нижня частина: Форма та Кнопка замовлення (Завжди притиснута до низу) */}
             {cart.length > 0 && (
-              <div className="border-t pt-6 mt-4">
-                <div className="mb-4 space-y-4 text-left">
-  <div>
-    <label className="block text-sm font-bold text-gray-700 mb-2">Ваше ім'я:</label>
-    <input 
-      type="text" 
-      placeholder="Як до вас звертатися?" 
-      value={userName} 
-      onChange={(e) => setUserName(e.target.value)}
-      className="w-full p-4 border-2 border-blue-100 rounded-2xl focus:border-blue-600 outline-none transition-all shadow-inner" 
-    />
-  </div>
-  
-  <div>
-    <label className="block text-sm font-bold text-gray-700 mb-2">Номер телефону:</label>
-    <input 
-      type="tel" 
-      placeholder="+380" 
-      value={phone} 
-      onChange={(e) => setPhone(e.target.value)}
-      className="w-full p-4 border-2 border-blue-100 rounded-2xl focus:border-blue-600 outline-none transition-all shadow-inner" 
-    />
-  </div>
+              <div className="border-t pt-4 bg-white">
+                <div className="space-y-3 text-left mb-4">
                   <div>
-    <label className="block text-sm font-bold text-gray-700 mb-2">Адреса доставки (Місто, № відділення Нової Пошти):</label>
-    <textarea 
-      rows={2}
-      placeholder="Наприклад: Київ, Нова Пошта №15 або вул. Хрещатик 1, кв. 5" 
-      value={address} 
-      onChange={(e) => setAddress(e.target.value)}
-      className="w-full p-4 border-2 border-blue-100 rounded-2xl focus:border-blue-600 outline-none transition-all shadow-inner resize-none" 
-    />
-  </div>
-</div>
-                <div className="flex justify-between text-2xl font-black mb-6 px-1 text-blue-600">
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Ваше ім'я:</label>
+                    <input type="text" placeholder="Як до вас звертатися?" value={userName} onChange={(e) => setUserName(e.target.value)}
+                      className="w-full p-3 border-2 border-blue-500/20 rounded-xl focus:border-blue-600 outline-none transition-all text-sm shadow-inner" />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Номер телефону:</label>
+                    <input type="tel" placeholder="+380" value={phone} onChange={(e) => setPhone(e.target.value)}
+                      className="w-full p-3 border-2 border-blue-500/20 rounded-xl focus:border-blue-600 outline-none transition-all text-sm shadow-inner" />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Адреса доставки (Місто, № відділення):</label>
+                    <input type="text" placeholder="Наприклад: Київ, Нова Пошта №15" value={address} onChange={(e) => setAddress(e.target.value)}
+                      className="w-full p-3 border-2 border-blue-500/20 rounded-xl focus:border-blue-600 outline-none transition-all text-sm shadow-inner" />
+                  </div>
+                </div>
+
+                <div className="flex justify-between text-xl font-black mb-4 px-1 text-blue-600 border-t pt-2">
                   <span className="text-gray-800">Разом:</span>
                   <span>{cart.reduce((sum, item) => sum + Number(item.price || item.Цена || item.Ціна || 0), 0)} грн</span>
                 </div>
-                <button onClick={sendOrder} className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl text-lg shadow-lg hover:bg-blue-700 active:scale-95 transition-all">
+                
+                <button onClick={sendOrder} className="w-full bg-blue-600 text-white font-black py-3.5 rounded-2xl text-md shadow-lg hover:bg-blue-700 active:scale-95 transition-all">
                   Оформити замовлення
                 </button>
               </div>
             )}
+            
           </div>
         </div>
       )}
-
+      
       {/* МОДАЛКА ПРО НАС */}
       {isAboutOpen && (
         <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4 backdrop-blur-sm">
