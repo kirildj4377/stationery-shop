@@ -53,6 +53,7 @@ export default function App() {
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(15);
   const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('Всі');
   
   // Поля оформлення
   const [userName, setUserName] = useState('');
@@ -112,10 +113,18 @@ export default function App() {
     } catch (e) { alert('Помилка при відправці замовлення'); }
   };
 
+  // Отримуємо унікальний список категорій із нашої таблиці
+const categories = ['Всі', ...new Set(products.map(p => p.category || p.Категорія || p.Категория || '').filter(Boolean))];
+  
   const filtered = products.filter(p => {
-    const title = (p.title || p.Название || p.Найменування || '').toString();
-    return title.toLowerCase().includes(search.toLowerCase());
-  });
+  const title = (p.title || p.Название || p.Найменування || '').toString().toLowerCase();
+  const pCategory = (p.category || p.Категорія || p.Категория || '').toString();
+  
+  const matchesSearch = title.includes(search.toLowerCase());
+  const matchesCategory = selectedCategory === 'Всі' || pCategory === selectedCategory;
+
+  return matchesSearch && matchesCategory;
+});
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 font-sans text-slate-900">
@@ -144,6 +153,25 @@ export default function App() {
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
+      {/* Кнопки категорій */}
+<div className="flex gap-2 overflow-x-auto pb-3 pt-2 scrollbar-none justify-start sm:justify-center mask-inline shadow-sm px-1">
+  {categories.map((cat, idx) => (
+    <button
+      key={idx}
+      onClick={() => {
+        setSelectedCategory(cat);
+        setVisibleCount(15); // Скидаємо лічильник товарів до 15 при зміні категорії
+      }}
+      className={`px-4 py-2 rounded-full text-xs font-black whitespace-nowrap transition-all border ${
+        selectedCategory === cat
+          ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-100 scale-105'
+          : 'bg-white text-gray-600 border-gray-200 hover:border-blue-400'
+      }`}
+    >
+      {cat}
+    </button>
+  ))}
+</div>
 
       {/* Сітка товарів */}
       <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 p-4">
