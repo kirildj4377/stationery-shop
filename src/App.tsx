@@ -5,8 +5,8 @@ import Papa from 'papaparse';
 
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhmHMwhHGRSFSsptZUHbQv0CWRmckGz6OrhBsqra4wwsPZ1uweXGhq02Ba0bSeYw4cWT44q160EBEx/pub?output=csv';
 
-// Компонент картки товару з власним лічильником та підтримкою опту
-function ProductCard({ item, onAddToCart }) {
+// Компонент карточки товара с собственным счетчиком, оптом и кликом для деталей
+function ProductCard({ item, onAddToCart, onOpenDetails }) {
   const [quantity, setQuantity] = useState(1);
 
   const title = item.title || item.Название || item.Найменування || 'Товар';
@@ -19,18 +19,31 @@ function ProductCard({ item, onAddToCart }) {
   const currentPrice = isOptActive ? optPrice : retailPrice;
 
   return (
-    <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-xl transition-all relative overflow-hidden">
+    <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-xl transition-all relative overflow-hidden group">
       {optMinCount > 0 && (
         <div className="absolute top-2 left-2 bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full z-10 shadow-sm">
           Опт від {optMinCount} шт
         </div>
       )}
 
-      <div className="h-40 w-full mb-4 flex items-center justify-center bg-gray-50 rounded-2xl overflow-hidden p-2">
-        <img src={item.image || item.Картинка || item.Фото || ''} className="max-h-full max-w-full object-contain hover:scale-105 transition-transform" alt={title} />
+      {/* Клик по картинке открывает детали */}
+      <div 
+        onClick={() => onOpenDetails(item)}
+        className="h-40 w-full mb-4 flex items-center justify-center bg-gray-50 rounded-2xl overflow-hidden p-2 cursor-pointer relative"
+      >
+        <img src={item.image || item.Картинка || item.Фото || ''} className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform" alt={title} />
+        <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+          <span className="bg-white/90 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm text-gray-700">🔍 Детальніше</span>
+        </div>
       </div>
       
-      <h2 className="font-bold text-gray-800 text-xs md:text-sm mb-3 line-clamp-2 h-10">{title}</h2>
+      {/* Клик по названию тоже открывает детали */}
+      <h2 
+        onClick={() => onOpenDetails(item)}
+        className="font-bold text-gray-800 text-xs md:text-sm mb-3 line-clamp-2 h-10 cursor-pointer hover:text-blue-600 transition-colors"
+      >
+        {title}
+      </h2>
       
       <div className="flex flex-col gap-3">
         <div className="flex items-baseline gap-2">
@@ -71,6 +84,10 @@ export default function App() {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isDeliveryOpen, setIsDeliveryOpen] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+  
+  // Для детального просмотра товара
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
   const [visibleCount, setVisibleCount] = useState(15);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Всі');
@@ -90,7 +107,6 @@ export default function App() {
     fetchData();
   }, []);
 
-  // Допоміжна функція для визначення поточної ціни товару з урахуванням кількості та опту
   const getItemPrice = (item) => {
     const retail = Number(item.price || item.Цена || item.Ціна || 0);
     const optMin = Number(item.Опт_Количество || item.opt_count || 0);
@@ -121,7 +137,7 @@ export default function App() {
     if (address.length < 4) { return alert("Будь ласка, введіть адресу доставки"); }
 
     const token = '8731756289:AAHBep4snR4J_rxALxpW-6UK0xAc6vJQLio';
-    const chatId = '-5236520700';     // Встав свій ID чату
+    const chatId = '-5236520700';  
     
     const itemsList = cart.map(item => {
       const title = item.title || item.Название || item.Найменування || 'Товар';
@@ -131,7 +147,7 @@ export default function App() {
     }).join('\n');
 
     const total = cart.reduce((sum, item) => sum + (getItemPrice(item) * item.count), 0);
-    const message = `🛒 НОВЕ ЗАМОВЛЕННЯ\n\n👤 Клієнт: ${userName}\n📞 Telephone: ${phone}\n🚚 Адреса: ${address}\n\n📦 Товари:\n${itemsList}\n\n💰 РАЗОМ: ${total} грн`;
+    const message = `🛒 НОВЕ ЗАМОВЛЕННЯ\n\n👤 Клієнт: ${userName}\n📞 Телефон: ${phone}\n🚚 Адреса: ${address}\n\n📦 Товари:\n${itemsList}\n\n💰 РАЗОМ: ${total} грн`;
 
     try {
       await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, { chat_id: chatId, text: message });
@@ -170,7 +186,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Контейнер пошуку та категорій */}
+      {/* Поиск и категории */}
       <div className="p-6 max-w-xl mx-auto space-y-3">
         <input 
           className="w-full p-4 rounded-2xl border-2 border-gray-200 shadow-sm outline-none focus:border-blue-500 transition-all text-lg"
@@ -178,7 +194,6 @@ export default function App() {
           onChange={(e) => setSearch(e.target.value)}
         />
         
-        {/* Кнопки категорій */}
         <div className="flex gap-2 overflow-x-auto pb-2 pt-1 scrollbar-none justify-start sm:justify-center px-1">
           {categories.map((cat, idx) => (
             <button
@@ -199,14 +214,14 @@ export default function App() {
         </div>
       </div>
 
-      {/* Сітка товарів */}
+      {/* Сетка товаров */}
       <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 p-4">
         {filtered.slice(0, visibleCount).map((item, idx) => (
-          <ProductCard key={idx} item={item} onAddToCart={addToCart} />
+          <ProductCard key={idx} item={item} onAddToCart={addToCart} onOpenDetails={setSelectedProduct} />
         ))}
       </div>
 
-      {/* Показати ще */}
+      {/* Показать еще */}
       {visibleCount < filtered.length && (
         <button 
           onClick={() => setVisibleCount(v => v + 15)}
@@ -234,7 +249,6 @@ export default function App() {
               <button onClick={() => setIsCartOpen(false)} className="text-3xl hover:text-red-500 transition">&times;</button>
             </div>
             
-            {/* Список товарів */}
             <div className="flex-1 overflow-y-auto my-4 pr-1 space-y-3" style={{ maxHeight: 'calc(100vh - 430px)', minHeight: '100px' }}>
               {cart.length === 0 ? (
                 <p className="text-gray-400 text-center mt-10">Кошик порожній...</p>
@@ -254,7 +268,6 @@ export default function App() {
               )}
             </div>
 
-            {/* Анкета замовлення */}
             {cart.length > 0 && (
               <div className="border-t pt-4 bg-white">
                 <div className="space-y-3 text-left mb-4">
@@ -284,6 +297,56 @@ export default function App() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* МОДАЛКА ДЕТАЛЬНОГО ПРОСМОТРА ТОВАРА */}
+      {selectedProduct && (
+        <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-6 md:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button 
+              onClick={() => setSelectedProduct(null)} 
+              className="absolute top-4 right-6 text-3xl text-gray-400 hover:text-red-500 transition"
+            >
+              &times;
+            </button>
+            
+            <div className="flex flex-col items-center text-center mt-2">
+              <div className="h-56 w-full max-w-[240px] mb-6 flex items-center justify-center bg-gray-50 rounded-2xl p-4 overflow-hidden">
+                <img 
+                  src={selectedProduct.image || selectedProduct.Картинка || selectedProduct.Фото || ''} 
+                  className="max-h-full max-w-full object-contain" 
+                  alt={selectedProduct.title || selectedProduct.Название} 
+                />
+              </div>
+              
+              <h2 className="text-xl font-black text-gray-800 mb-3 px-2">
+                {selectedProduct.title || selectedProduct.Название || selectedProduct.Найменування}
+              </h2>
+              
+              <div className="text-lg font-black text-blue-600 mb-4 bg-blue-50 px-4 py-1.5 rounded-full">
+                {selectedProduct.price || selectedProduct.Цена || selectedProduct.Ціна} грн
+              </div>
+              
+              {/* Вывод описания из колонки description */}
+              <div className="text-left w-full bg-gray-50 p-4 rounded-2xl border border-gray-100 mb-6">
+                <h3 className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Опис товару:</h3>
+                <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">
+                  {selectedProduct.description || selectedProduct.Описание || selectedProduct.Опис || 'Опис для цього товару поки що відсутній.'}
+                </p>
+              </div>
+              
+              <button 
+                onClick={() => {
+                  addToCart(selectedProduct, 1);
+                  setSelectedProduct(null);
+                }} 
+                className="w-full bg-blue-600 text-white py-3.5 rounded-2xl font-black shadow-lg hover:bg-blue-700 active:scale-95 transition-all text-md"
+              >
+                Додати в кошик (1 шт)
+              </button>
+            </div>
           </div>
         </div>
       )}
