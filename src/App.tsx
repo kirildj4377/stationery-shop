@@ -18,6 +18,22 @@ function ProductCard({ item, onAddToCart, onOpenDetails }) {
   const isOptActive = optMinCount > 0 && optPrice > 0 && quantity >= optMinCount;
   const currentPrice = isOptActive ? optPrice : retailPrice;
 
+  // Функция для безопасного ручного ввода количества
+  const handleInputChange = (val) => {
+    const num = parseInt(val, 10);
+    if (isNaN(num) || num < 1) {
+      setQuantity(''); // Позволяем временно стереть цифру для ввода новой
+    } else {
+      setQuantity(num);
+    }
+  };
+
+  const handleBlur = () => {
+    if (quantity === '' || quantity < 1) {
+      setQuantity(1); // Если поле осталось пустым при потере фокуса, возвращаем 1
+    }
+  };
+
   return (
     <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-xl transition-all relative overflow-hidden group">
       {optMinCount > 0 && (
@@ -26,7 +42,6 @@ function ProductCard({ item, onAddToCart, onOpenDetails }) {
         </div>
       )}
 
-      {/* Клик по картинке открывает детали */}
       <div 
         onClick={() => onOpenDetails(item)}
         className="h-40 w-full mb-4 flex items-center justify-center bg-gray-50 rounded-2xl overflow-hidden p-2 cursor-pointer relative"
@@ -37,7 +52,6 @@ function ProductCard({ item, onAddToCart, onOpenDetails }) {
         </div>
       </div>
       
-      {/* Клик по названию тоже открывает детали */}
       <h2 
         onClick={() => onOpenDetails(item)}
         className="font-bold text-gray-800 text-xs md:text-sm mb-3 line-clamp-2 h-10 cursor-pointer hover:text-blue-600 transition-colors"
@@ -57,15 +71,35 @@ function ProductCard({ item, onAddToCart, onOpenDetails }) {
           )}
         </div>
         
+        {/* Кнопки количества + Инпут для ручного ввода */}
         <div className="flex items-center justify-between bg-gray-100 rounded-xl p-1">
-          <button onClick={() => setQuantity(q => q > 1 ? q - 1 : 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg font-black text-gray-600 hover:bg-gray-200 active:scale-95 transition-all">-</button>
-          <span className="font-bold text-sm text-gray-800">{quantity} шт</span>
-          <button onClick={() => setQuantity(q => q + 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg font-black text-gray-600 hover:bg-gray-200 active:scale-95 transition-all">+</button>
+          <button 
+            onClick={() => setQuantity(q => (Number(q) > 1 ? Number(q) - 1 : 1))} 
+            className="w-8 h-8 flex items-center justify-center bg-white rounded-lg font-black text-gray-600 hover:bg-gray-200 active:scale-95 transition-all"
+          >
+            -
+          </button>
+          
+          <input 
+            type="number" 
+            value={quantity}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onBlur={handleBlur}
+            className="w-16 bg-transparent text-center font-bold text-sm text-gray-800 outline-none border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          />
+          
+          <button 
+            onClick={() => setQuantity(q => Number(q) + 1)} 
+            className="w-8 h-8 flex items-center justify-center bg-white rounded-lg font-black text-gray-600 hover:bg-gray-200 active:scale-95 transition-all"
+          >
+            +
+          </button>
         </div>
 
         <button 
           onClick={() => {
-            onAddToCart(item, quantity);
+            const finalQty = quantity === '' ? 1 : Number(quantity);
+            onAddToCart(item, finalQty);
             setQuantity(1);
           }}
           className={`w-full font-bold py-2 rounded-xl transition-all text-sm shadow-md ${isOptActive ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
@@ -87,6 +121,11 @@ export default function App() {
   
   // Для детального просмотра товара
   const [selectedProduct, setSelectedProduct] = useState(null);
+
+  // Технический стейт для синхронизации ввода в модалке просмотра
+  const [, setTick] = useState(0);
+  window.forceUpdateModal = () => setTick(t => t + 1);
+  window.setModalQtyAction = (val) => { window.modalQty = val; setTick(t => t + 1); };
 
   const [visibleCount, setVisibleCount] = useState(15);
   const [search, setSearch] = useState('');
@@ -303,52 +342,61 @@ export default function App() {
 
       {/* МОДАЛКА ДЕТАЛЬНОГО ПРОСМОТРА ТОВАРА */}
       {selectedProduct && (
-        <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-6 md:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button 
-              onClick={() => setSelectedProduct(null)} 
-              className="absolute top-4 right-6 text-3xl text-gray-400 hover:text-red-500 transition"
-            >
-              &times;
-            </button>
-            
-            <div className="flex flex-col items-center text-center mt-2">
-              <div className="h-56 w-full max-w-[240px] mb-6 flex items-center justify-center bg-gray-50 rounded-2xl p-4 overflow-hidden">
-                <img 
-                  src={selectedProduct.image || selectedProduct.Картинка || selectedProduct.Фото || ''} 
-                  className="max-h-full max-w-full object-contain" 
-                  alt={selectedProduct.title || selectedProduct.Название} 
-                />
+       {/* НАЧАЛО ОБНОВЛЕННОГО БЛОКА СЧЕТЧИКА В МОДАЛКЕ */}
+              <div className="w-full flex items-center gap-3 mb-4">
+                <div className="flex items-center justify-between bg-gray-100 rounded-2xl p-1.5 flex-1 max-w-[140px]">
+                  <button 
+                    onClick={() => {
+                      const btnQty = window.modalQty || 1;
+                      window.setModalQtyAction?.(btnQty > 1 ? btnQty - 1 : 1);
+                    }} 
+                    className="w-10 h-10 flex items-center justify-center bg-white rounded-xl font-black text-gray-600 hover:bg-gray-200 active:scale-95 transition-all"
+                  >
+                    -
+                  </button>
+                  
+                  <input 
+                    type="number" 
+                    value={(() => {
+                      if (window.modalQty === undefined) window.modalQty = 1;
+                      return window.modalQty;
+                    })()}
+                    onChange={(e) => {
+                      const num = parseInt(e.target.value, 10);
+                      window.modalQty = isNaN(num) || num < 1 ? '' : num;
+                      window.forceUpdateModal?.();
+                    }}
+                    onBlur={() => {
+                      if (!window.modalQty || window.modalQty < 1) window.modalQty = 1;
+                      window.forceUpdateModal?.();
+                    }}
+                    className="w-12 bg-transparent text-center font-bold text-sm text-gray-800 outline-none border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  
+                  <button 
+                    onClick={() => {
+                      const btnQty = window.modalQty || 1;
+                      window.setModalQtyAction?.(Number(btnQty) + 1);
+                    }} 
+                    className="w-10 h-10 flex items-center justify-center bg-white rounded-xl font-black text-gray-600 hover:bg-gray-200 active:scale-95 transition-all"
+                  >
+                    +
+                  </button>
+                </div>
+
+                <button 
+                  onClick={() => {
+                    const finalQty = window.modalQty || 1;
+                    addToCart(selectedProduct, Number(finalQty));
+                    window.modalQty = 1; // сбрасываем
+                    setSelectedProduct(null);
+                  }} 
+                  className="flex-1 bg-blue-600 text-white py-3.5 rounded-2xl font-black shadow-lg hover:bg-blue-700 active:scale-95 transition-all text-md h-full"
+                >
+                  Додати в кошик
+                </button>
               </div>
-              
-              <h2 className="text-xl font-black text-gray-800 mb-3 px-2">
-                {selectedProduct.title || selectedProduct.Название || selectedProduct.Найменування}
-              </h2>
-              
-              <div className="text-lg font-black text-blue-600 mb-4 bg-blue-50 px-4 py-1.5 rounded-full">
-                {selectedProduct.price || selectedProduct.Цена || selectedProduct.Ціна} грн
-              </div>
-              
-              {/* Вывод описания из колонки description */}
-              <div className="text-left w-full bg-gray-50 p-4 rounded-2xl border border-gray-100 mb-6">
-                <h3 className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Опис товару:</h3>
-                <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">
-                  {selectedProduct.description || selectedProduct.Описание || selectedProduct.Опис || 'Опис для цього товару поки що відсутній.'}
-                </p>
-              </div>
-              
-              <button 
-                onClick={() => {
-                  addToCart(selectedProduct, 1);
-                  setSelectedProduct(null);
-                }} 
-                className="w-full bg-blue-600 text-white py-3.5 rounded-2xl font-black shadow-lg hover:bg-blue-700 active:scale-95 transition-all text-md"
-              >
-                Додати в кошик (1 шт)
-              </button>
-            </div>
-          </div>
-        </div>
+              {/* КОНЕЦ ОБНОВЛЕННОГО БЛОКА */}
       )}
 
       {/* МОДАЛКА УСПІХУ */}
