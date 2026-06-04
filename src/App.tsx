@@ -230,7 +230,8 @@ export default function App() {
           onChange={(e) => setSearch(e.target.value)}
         />
         
-        <div className="flex gap-2 overflow-x-auto pb-2 pt-1 scrollbar-none justify-start sm:justify-center px-1">
+        {/* Кнопки категорій — тепер адаптивна хмара, де видно все й одразу */}
+        <div className="flex flex-wrap gap-2 pt-2 justify-center">
           {categories.map((cat, idx) => (
             <button
               key={idx}
@@ -238,10 +239,10 @@ export default function App() {
                 setSelectedCategory(cat);
                 setVisibleCount(15);
               }}
-              className={`px-4 py-2 rounded-full text-xs font-black whitespace-nowrap transition-all border ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border shadow-sm active:scale-95 ${
                 selectedCategory === cat
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-105'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-blue-400'
+                  ? 'bg-blue-600 text-white border-blue-600 font-black'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:bg-blue-50/50'
               }`}
             >
               {cat}
