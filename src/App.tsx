@@ -5,24 +5,21 @@ import Papa from 'papaparse';
 
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhmHMwhHGRSFSsptZUHbQv0CWRmckGz6OrhBsqra4wwsPZ1uweXGhq02Ba0bSeYw4cWT44q160EBEx/pub?output=csv';
 
-// Компонент картки товару з власним лічильником
+// Компонент картки товару з власним лічильником та підтримкою опту
 function ProductCard({ item, onAddToCart }) {
   const [quantity, setQuantity] = useState(1);
 
   const title = item.title || item.Название || item.Найменування || 'Товар';
   const retailPrice = Number(item.price || item.Цена || item.Ціна || 0);
   
-  // Читаем оптовые данные из таблицы
   const optMinCount = Number(item.Опт_Количество || item.opt_count || 0);
   const optPrice = Number(item.Опт_Цена || item.opt_price || 0);
 
-  // Проверяем, действует ли сейчас опт на основе выбранного количества
   const isOptActive = optMinCount > 0 && optPrice > 0 && quantity >= optMinCount;
   const currentPrice = isOptActive ? optPrice : retailPrice;
 
   return (
     <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-xl transition-all relative overflow-hidden">
-      {/* Метка опта на карточке */}
       {optMinCount > 0 && (
         <div className="absolute top-2 left-2 bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full z-10 shadow-sm">
           Опт від {optMinCount} шт
@@ -47,7 +44,6 @@ function ProductCard({ item, onAddToCart }) {
           )}
         </div>
         
-        {/* Кнопки количества */}
         <div className="flex items-center justify-between bg-gray-100 rounded-xl p-1">
           <button onClick={() => setQuantity(q => q > 1 ? q - 1 : 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg font-black text-gray-600 hover:bg-gray-200 active:scale-95 transition-all">-</button>
           <span className="font-bold text-sm text-gray-800">{quantity} шт</span>
@@ -79,7 +75,6 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Всі');
   
-  // Поля оформлення
   const [userName, setUserName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
@@ -94,6 +89,16 @@ export default function App() {
     };
     fetchData();
   }, []);
+
+  // Допоміжна функція для визначення поточної ціни товару з урахуванням кількості та опту
+  const getItemPrice = (item) => {
+    const retail = Number(item.price || item.Цена || item.Ціна || 0);
+    const optMin = Number(item.Опт_Количество || item.opt_count || 0);
+    const optP = Number(item.Опт_Цена || item.opt_price || 0);
+    return (optMin > 0 && optP > 0 && item.count >= optMin) ? optP : retail;
+  };
+
+  const categories = ['Всі', ...new Set(products.map(p => p.category || p.Категорія || p.Категория || '').filter(Boolean))];
 
   const addToCart = (item, quantity) => {
     const itemTitle = item.title || item.Название || item.Найменування;
@@ -110,34 +115,23 @@ export default function App() {
 
   const removeFromCart = (index) => setCart(cart.filter((_, i) => i !== index));
 
-  const getItemPrice = (item) => {
-  const retail = Number(item.price || item.Цена || item.Ціна || 0);
-  const optMin = Number(item.Опт_Количество || item.opt_count || 0);
-  const optP = Number(item.Опт_Цена || item.opt_price || 0);
-  
-  return (optMin > 0 && optP > 0 && item.count >= optMin) ? optP : retail;
-};
-
   const sendOrder = async () => {
     if (userName.length < 2) { return alert("Будь ласка, введіть ваше ім'я"); }
     if (phone.length < 10) { return alert("Будь ласка, введіть коректний номер телефону"); }
     if (address.length < 4) { return alert("Будь ласка, введіть адресу доставки"); }
 
-    const token = '8731756289:AAHBep4snR4J_rxALxpW-6UK0xAc6vJQLio'; // Встав сюди свій токен
-    const chatId = '-5236520700';     // Встав сюди свій ID чату/групи
+    const token = '8731756289:AAHBep4snR4J_rxALxpW-6UK0xAc6vJQLio';
+    const chatId = '-5236520700';     // Встав свій ID чату
     
     const itemsList = cart.map(item => {
-  const title = item.title || item.Название || item.Найменування || 'Товар';
-  const singlePrice = getItemPrice(item);
-  const isOpt = Number(item.Опт_Количество || 0) > 0 && item.count >= Number(item.Опт_Количество || 0);
+      const title = item.title || item.Название || item.Найменування || 'Товар';
+      const singlePrice = getItemPrice(item);
+      const isOpt = Number(item.Опт_Количество || 0) > 0 && item.count >= Number(item.Опт_Количество || 0);
+      return `- ${title} (${item.count} шт) — ${singlePrice * item.count} грн ${isOpt ? '[ОПТ] 🔥' : ''}`;
+    }).join('\n');
 
-  return `- ${title} (${item.count} шт) — ${singlePrice * item.count} грн ${isOpt ? '[ОПТ] 🔥' : ''}`;
-}).join('\n');
-
-const total = cart.reduce((sum, item) => sum + (getItemPrice(item) * item.count), 0);
-
-    const total = cart.reduce((sum, item) => sum + (Number(item.price || item.Цена || item.Ціна || 0) * item.count), 0);
-    const message = `🛒 НОВЕ ЗАМОВЛЕННЯ\n\n👤 Клієнт: ${userName}\n📞 Телефон: ${phone}\n🚚 Адреса: ${address}\n\n📦 Товари:\n${itemsList}\n\n💰 РАЗОМ: ${total} грн`;
+    const total = cart.reduce((sum, item) => sum + (getItemPrice(item) * item.count), 0);
+    const message = `🛒 НОВЕ ЗАМОВЛЕННЯ\n\n👤 Клієнт: ${userName}\n📞 Telephone: ${phone}\n🚚 Адреса: ${address}\n\n📦 Товари:\n${itemsList}\n\n💰 РАЗОМ: ${total} грн`;
 
     try {
       await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, { chat_id: chatId, text: message });
@@ -149,18 +143,13 @@ const total = cart.reduce((sum, item) => sum + (getItemPrice(item) * item.count)
     } catch (e) { alert('Помилка при відправці замовлення'); }
   };
 
-  // Отримуємо унікальний список категорій із нашої таблиці
-const categories = ['Всі', ...new Set(products.map(p => p.category || p.Категорія || p.Категория || '').filter(Boolean))];
-  
   const filtered = products.filter(p => {
-  const title = (p.title || p.Название || p.Найменування || '').toString().toLowerCase();
-  const pCategory = (p.category || p.Категорія || p.Категория || '').toString();
-  
-  const matchesSearch = title.includes(search.toLowerCase());
-  const matchesCategory = selectedCategory === 'Всі' || pCategory === selectedCategory;
-
-  return matchesSearch && matchesCategory;
-});
+    const title = (p.title || p.Название || p.Найменування || '').toString().toLowerCase();
+    const pCategory = (p.category || p.Категорія || p.Категория || '').toString();
+    const matchesSearch = title.includes(search.toLowerCase());
+    const matchesCategory = selectedCategory === 'Всі' || pCategory === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 font-sans text-slate-900">
@@ -181,33 +170,34 @@ const categories = ['Всі', ...new Set(products.map(p => p.category || p.Ка�
         </div>
       </header>
 
-      {/* Пошук */}
-      <div className="p-6 max-w-xl mx-auto">
+      {/* Контейнер пошуку та категорій */}
+      <div className="p-6 max-w-xl mx-auto space-y-3">
         <input 
           className="w-full p-4 rounded-2xl border-2 border-gray-200 shadow-sm outline-none focus:border-blue-500 transition-all text-lg"
           placeholder="Пошук товарів за назвою..."
           onChange={(e) => setSearch(e.target.value)}
         />
+        
+        {/* Кнопки категорій */}
+        <div className="flex gap-2 overflow-x-auto pb-2 pt-1 scrollbar-none justify-start sm:justify-center px-1">
+          {categories.map((cat, idx) => (
+            <button
+              key={idx}
+              onClick={() => {
+                setSelectedCategory(cat);
+                setVisibleCount(15);
+              }}
+              className={`px-4 py-2 rounded-full text-xs font-black whitespace-nowrap transition-all border ${
+                selectedCategory === cat
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-105'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-blue-400'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
       </div>
-      {/* Кнопки категорій */}
-<div className="flex gap-2 overflow-x-auto pb-3 pt-2 scrollbar-none justify-start sm:justify-center mask-inline shadow-sm px-1">
-  {categories.map((cat, idx) => (
-    <button
-      key={idx}
-      onClick={() => {
-        setSelectedCategory(cat);
-        setVisibleCount(15); // Скидаємо лічильник товарів до 15 при зміні категорії
-      }}
-      className={`px-4 py-2 rounded-full text-xs font-black whitespace-nowrap transition-all border ${
-        selectedCategory === cat
-          ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-100 scale-105'
-          : 'bg-white text-gray-600 border-gray-200 hover:border-blue-400'
-      }`}
-    >
-      {cat}
-    </button>
-  ))}
-</div>
 
       {/* Сітка товарів */}
       <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 p-4">
@@ -253,20 +243,12 @@ const categories = ['Всі', ...new Set(products.map(p => p.category || p.Ка�
                   <div key={i} className="flex justify-between items-center bg-gray-50 p-3 rounded-2xl border border-gray-100">
                     <span className="text-sm font-bold flex-1 pr-2 line-clamp-2">{item.title || item.Название || item.Найменування}</span>
                     <div className="flex items-center gap-3">
-  <span className="text-xs text-gray-400 whitespace-nowrap">{item.count} шт ×</span>
-  <span className="font-black text-sm whitespace-nowrap text-blue-600">
-    {(() => {
-      const retail = Number(item.price || item.Цена || item.Ціна || 0);
-      const optMin = Number(item.Опт_Количество || item.opt_count || 0);
-      const optP = Number(item.Опт_Цена || item.opt_price || 0);
-      
-      // Считаем цену за 1 шт с учетом опта
-      const finalPricePerOne = (optMin > 0 && optP > 0 && item.count >= optMin) ? optP : retail;
-      return `${finalPricePerOne * item.count} грн`;
-    })()}
-  </span>
-  <button onClick={() => removeFromCart(i)} className="text-red-400 hover:text-red-600 transition text-sm">✕</button>
-</div>
+                      <span className="text-xs text-gray-400 whitespace-nowrap">{item.count} шт ×</span>
+                      <span className="font-black text-blue-600 whitespace-nowrap text-sm">
+                        {getItemPrice(item) * item.count} грн
+                      </span>
+                      <button onClick={() => removeFromCart(i)} className="text-red-400 hover:text-red-600 transition text-sm">✕</button>
+                    </div>
                   </div>
                 ))
               )}
