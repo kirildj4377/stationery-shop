@@ -10,20 +10,44 @@ function ProductCard({ item, onAddToCart }) {
   const [quantity, setQuantity] = useState(1);
 
   const title = item.title || item.Название || item.Найменування || 'Товар';
-  const price = item.price || item.Цена || item.Ціна || '0';
-  const image = item.image || item.Картинка || item.Фото || '';
+  const retailPrice = Number(item.price || item.Цена || item.Ціна || 0);
+  
+  // Читаем оптовые данные из таблицы
+  const optMinCount = Number(item.Опт_Количество || item.opt_count || 0);
+  const optPrice = Number(item.Опт_Цена || item.opt_price || 0);
+
+  // Проверяем, действует ли сейчас опт на основе выбранного количества
+  const isOptActive = optMinCount > 0 && optPrice > 0 && quantity >= optMinCount;
+  const currentPrice = isOptActive ? optPrice : retailPrice;
 
   return (
-    <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-xl transition-all">
+    <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-xl transition-all relative overflow-hidden">
+      {/* Метка опта на карточке */}
+      {optMinCount > 0 && (
+        <div className="absolute top-2 left-2 bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full z-10 shadow-sm">
+          Опт від {optMinCount} шт
+        </div>
+      )}
+
       <div className="h-40 w-full mb-4 flex items-center justify-center bg-gray-50 rounded-2xl overflow-hidden p-2">
-        <img src={image} className="max-h-full max-w-full object-contain hover:scale-105 transition-transform" alt={title} />
+        <img src={item.image || item.Картинка || item.Фото || ''} className="max-h-full max-w-full object-contain hover:scale-105 transition-transform" alt={title} />
       </div>
+      
       <h2 className="font-bold text-gray-800 text-xs md:text-sm mb-3 line-clamp-2 h-10">{title}</h2>
       
       <div className="flex flex-col gap-3">
-        <span className="text-lg md:text-xl font-black text-blue-600">{price} грн</span>
+        <div className="flex items-baseline gap-2">
+          <span className={`text-lg md:text-xl font-black transition-colors ${isOptActive ? 'text-green-600' : 'text-blue-600'}`}>
+            {currentPrice} грн
+          </span>
+          {isOptActive && (
+            <span className="text-[10px] text-green-600 font-bold bg-green-50 px-1.5 py-0.5 rounded-md animate-pulse">
+              ОПТ 🔥
+            </span>
+          )}
+        </div>
         
-        {/* Кнопки кількості */}
+        {/* Кнопки количества */}
         <div className="flex items-center justify-between bg-gray-100 rounded-xl p-1">
           <button onClick={() => setQuantity(q => q > 1 ? q - 1 : 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg font-black text-gray-600 hover:bg-gray-200 active:scale-95 transition-all">-</button>
           <span className="font-bold text-sm text-gray-800">{quantity} шт</span>
@@ -35,7 +59,7 @@ function ProductCard({ item, onAddToCart }) {
             onAddToCart(item, quantity);
             setQuantity(1);
           }}
-          className="w-full bg-blue-600 text-white font-bold py-2 rounded-xl hover:bg-blue-700 transition-all text-sm shadow-md"
+          className={`w-full font-bold py-2 rounded-xl transition-all text-sm shadow-md ${isOptActive ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
         >
           У кошик
         </button>
@@ -86,6 +110,14 @@ export default function App() {
 
   const removeFromCart = (index) => setCart(cart.filter((_, i) => i !== index));
 
+  const getItemPrice = (item) => {
+  const retail = Number(item.price || item.Цена || item.Ціна || 0);
+  const optMin = Number(item.Опт_Количество || item.opt_count || 0);
+  const optP = Number(item.Опт_Цена || item.opt_price || 0);
+  
+  return (optMin > 0 && optP > 0 && item.count >= optMin) ? optP : retail;
+};
+
   const sendOrder = async () => {
     if (userName.length < 2) { return alert("Будь ласка, введіть ваше ім'я"); }
     if (phone.length < 10) { return alert("Будь ласка, введіть коректний номер телефону"); }
@@ -95,10 +127,14 @@ export default function App() {
     const chatId = '-5236520700';     // Встав сюди свій ID чату/групи
     
     const itemsList = cart.map(item => {
-      const title = item.title || item.Название || item.Найменування || 'Товар';
-      const p = item.price || item.Цена || item.Ціна || '0';
-      return `- ${title} (${item.count} шт) — ${(Number(p) * item.count)} грн`;
-    }).join('\n');
+  const title = item.title || item.Название || item.Найменування || 'Товар';
+  const singlePrice = getItemPrice(item);
+  const isOpt = Number(item.Опт_Количество || 0) > 0 && item.count >= Number(item.Опт_Количество || 0);
+
+  return `- ${title} (${item.count} шт) — ${singlePrice * item.count} грн ${isOpt ? '[ОПТ] 🔥' : ''}`;
+}).join('\n');
+
+const total = cart.reduce((sum, item) => sum + (getItemPrice(item) * item.count), 0);
 
     const total = cart.reduce((sum, item) => sum + (Number(item.price || item.Цена || item.Ціна || 0) * item.count), 0);
     const message = `🛒 НОВЕ ЗАМОВЛЕННЯ\n\n👤 Клієнт: ${userName}\n📞 Телефон: ${phone}\n🚚 Адреса: ${address}\n\n📦 Товари:\n${itemsList}\n\n💰 РАЗОМ: ${total} грн`;
@@ -217,10 +253,20 @@ const categories = ['Всі', ...new Set(products.map(p => p.category || p.Ка�
                   <div key={i} className="flex justify-between items-center bg-gray-50 p-3 rounded-2xl border border-gray-100">
                     <span className="text-sm font-bold flex-1 pr-2 line-clamp-2">{item.title || item.Название || item.Найменування}</span>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-gray-400 whitespace-nowrap">{item.count} шт ×</span>
-                      <span className="font-black text-blue-600 whitespace-nowrap text-sm">{(Number(item.price || item.Цена || item.Ціна || 0) * item.count)} грн</span>
-                      <button onClick={() => removeFromCart(i)} className="text-red-400 hover:text-red-600 transition text-sm">✕</button>
-                    </div>
+  <span className="text-xs text-gray-400 whitespace-nowrap">{item.count} шт ×</span>
+  <span className="font-black text-sm whitespace-nowrap text-blue-600">
+    {(() => {
+      const retail = Number(item.price || item.Цена || item.Ціна || 0);
+      const optMin = Number(item.Опт_Количество || item.opt_count || 0);
+      const optP = Number(item.Опт_Цена || item.opt_price || 0);
+      
+      // Считаем цену за 1 шт с учетом опта
+      const finalPricePerOne = (optMin > 0 && optP > 0 && item.count >= optMin) ? optP : retail;
+      return `${finalPricePerOne * item.count} грн`;
+    })()}
+  </span>
+  <button onClick={() => removeFromCart(i)} className="text-red-400 hover:text-red-600 transition text-sm">✕</button>
+</div>
                   </div>
                 ))
               )}
@@ -249,7 +295,7 @@ const categories = ['Всі', ...new Set(products.map(p => p.category || p.Ка�
 
                 <div className="flex justify-between text-xl font-black mb-4 px-1 text-blue-600 border-t pt-2">
                   <span className="text-gray-800">Разом:</span>
-                  <span>{cart.reduce((sum, item) => sum + (Number(item.price || item.Цена || item.Ціна || 0) * item.count), 0)} грн</span>
+                  <span>{cart.reduce((sum, item) => sum + (getItemPrice(item) * item.count), 0)} грн</span>
                 </div>
                 <button onClick={sendOrder} className="w-full bg-blue-600 text-white font-black py-3.5 rounded-2xl text-md shadow-lg hover:bg-blue-700 active:scale-95 transition-all">
                   Оформити замовлення
