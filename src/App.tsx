@@ -459,8 +459,8 @@ export default function App() {
             <h2 className="text-2xl font-black mb-4 text-blue-600">Доставка та оплата 🚚</h2>
             <div className="text-gray-600 space-y-3 mb-6 text-sm">
               <p>📍 <strong>Нова Пошта:</strong> Відправка щодня.</p>
-              <p>📍 <strong>Укрпошта:</strong> Відправка Пн, Ср, Пт.</p>
-              <p>💳 <strong>Оплата:</strong> На картку або при отриманні.</p>
+              <p>📍 <strong>Кур'єр:</strong> 1000 грн, тільки у Харкові.</p>
+              <p>💳 <strong>Оплата:</strong> На рахунок або при отриманні.</p>
             </div>
             <button onClick={() => setIsDeliveryOpen(false)} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black">Окей</button>
           </div>
