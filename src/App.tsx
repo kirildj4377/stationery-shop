@@ -5,7 +5,7 @@ import Papa from 'papaparse';
 
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhmHMwhHGRSFSsptZUHbQv0CWRmckGz6OrhBsqra4wwsPZ1uweXGhq02Ba0bSeYw4cWT44q160EBEx/pub?output=csv';
 
-// Компонент карточки товара
+// Компонент картки товару
 function ProductCard({ item, onAddToCart, onOpenDetails }) {
   const [quantity, setQuantity] = useState(1);
 
@@ -105,7 +105,7 @@ export default function App() {
   const [isDeliveryOpen, setIsDeliveryOpen] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
   
-  // Детальный просмотр товара
+  // Детальний перегляд товару
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [modalQuantity, setModalQuantity] = useState(1);
 
@@ -113,15 +113,16 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Всі');
   
-  // Состояние открытия красивого кастомного дропдауна
+  // Кастомний дропдаун
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
+  // Поля оформлення замовлення
   const [userName, setUserName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [comment, setComment] = useState(''); // Стейт для коментаря
 
-  // Закрытие дропдауна при клике вне его области
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -188,7 +189,7 @@ export default function App() {
     if (address.length < 4) { return alert("Будь ласка, введіть адресу доставки"); }
 
     const token = '8731756289:AAHBep4snR4J_rxALxpW-6UK0xAc6vJQLio';
-    const chatId = '-5236520700';     
+    const chatId = '-5236520700';      
     
     const itemsList = cart.map(item => {
       const title = item.title || item.Название || item.Найменування || 'Товар';
@@ -198,13 +199,18 @@ export default function App() {
     }).join('\n');
 
     const totalOrderAmount = cart.reduce((sum, item) => sum + (getItemPrice(item) * item.count), 0);
-    const message = `🛒 НОВЕ ЗАМОВЛЕННЯ\n\n👤 Клієнт: ${userName}\n📞 Телефон: ${phone}\n🚚 Адреса: ${address}\n\n📦 Товари:\n${itemsList}\n\n💰 РАЗОМ: ${totalOrderAmount} грн`;
+    
+    // Формуємо коментар для повідомлення, якщо він заповнений
+    const commentText = comment.trim() ? `💬 Коментар: ${comment}\n` : '';
+    
+    const message = `🛒 НОВЕ ЗАМОВЛЕННЯ\n\n👤 Клієнт: ${userName}\n📞 Telephone: ${phone}\n🚚 Адреса: ${address}\n${commentText}\n📦 Товари:\n${itemsList}\n\n💰 РАЗОМ: ${totalOrderAmount} грн`;
 
     try {
       await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, { chat_id: chatId, text: message });
       setCart([]);
       setPhone('');
       setAddress('');
+      setComment(''); // Скидаємо коментар після успішного замовлення
       setIsCartOpen(false);
       setIsSuccessOpen(true);
     } catch (e) { alert('Помилка при відправці замовлення'); }
@@ -237,11 +243,10 @@ export default function App() {
         </div>
       </header>
 
-      {/* Контейнер поиска и нового КРАСИВОГО выпадающего списка */}
+      {/* Пошук та Кастомний Дропдаун */}
       <div className="p-6 max-w-2xl mx-auto">
         <div className="flex flex-col sm:flex-row gap-2 bg-white p-2 rounded-2xl border-2 border-gray-200 shadow-sm focus-within:border-blue-500 transition-all relative">
           
-          {/* Кастомный Дропдаун */}
           <div className="relative min-w-[210px] sm:border-r-2 sm:border-gray-100 sm:pr-2" ref={dropdownRef}>
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -255,7 +260,6 @@ export default function App() {
               </svg>
             </button>
 
-            {/* Красивое скругленное плавающее меню */}
             {isDropdownOpen && (
               <div className="absolute left-0 mt-2 w-full sm:w-64 bg-white border border-gray-100 rounded-2xl shadow-xl z-[90] max-h-80 overflow-y-auto p-1.5 space-y-0.5 animate-fadeIn">
                 {categories.map((cat, idx) => (
@@ -280,7 +284,6 @@ export default function App() {
             )}
           </div>
 
-          {/* Строка поиска */}
           <input 
             className="w-full flex-1 p-3 outline-none text-md bg-transparent text-gray-800 placeholder-gray-400"
             placeholder="Пошук товарів за назвою..."
@@ -291,7 +294,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* Сетка товаров */}
+      {/* Сітка товарів */}
       <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 p-4">
         {filtered.slice(0, visibleCount).map((item, idx) => (
           <ProductCard 
@@ -303,7 +306,7 @@ export default function App() {
         ))}
       </div>
 
-      {/* Показать еще */}
+      {/* Показати ще */}
       {visibleCount < filtered.length && (
         <button 
           onClick={() => setVisibleCount(v => v + 15)}
@@ -322,7 +325,7 @@ export default function App() {
          <p className="text-gray-400 text-xs">© 2026 Магазин Канцтоварів. Всі права захищені.</p>
       </footer>
 
-      {/* МОДАЛКА КОРЗИНЫ */}
+      {/* МОДАЛКА КОРЗИНИ */}
       {isCartOpen && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex justify-end backdrop-blur-sm">
           <div className="bg-white w-full max-w-md h-full p-6 shadow-2xl flex flex-col justify-between">
@@ -331,7 +334,8 @@ export default function App() {
               <button onClick={() => setIsCartOpen(false)} className="text-3xl hover:text-red-500 transition">&times;</button>
             </div>
             
-            <div className="flex-1 overflow-y-auto my-4 pr-1 space-y-3" style={{ maxHeight: 'calc(100vh - 430px)', minHeight: '100px' }}>
+            {/* Адаптував висоту списку під нове поле коментаря */}
+            <div className="flex-1 overflow-y-auto my-4 pr-1 space-y-3" style={{ maxHeight: 'calc(100vh - 490px)', minHeight: '80px' }}>
               {cart.length === 0 ? (
                 <p className="text-gray-400 text-center mt-10">Кошик порожній...</p>
               ) : (
@@ -352,7 +356,7 @@ export default function App() {
 
             {cart.length > 0 && (
               <div className="border-t pt-4 bg-white">
-                <div className="space-y-3 text-left mb-4">
+                <div className="space-y-2.5 text-left mb-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1">Ваше ім'я:</label>
                     <input type="text" placeholder="Як до вас звертатися?" value={userName} onChange={(e) => setUserName(e.target.value)}
@@ -367,6 +371,18 @@ export default function App() {
                     <label className="block text-xs font-bold text-gray-500 mb-1">Адреса доставки (Місто, № відділення):</label>
                     <input type="text" placeholder="Наприклад: Київ, Нова Пошта №15" value={address} onChange={(e) => setAddress(e.target.value)}
                       className="w-full p-3 border-2 border-blue-100 rounded-xl focus:border-blue-600 outline-none transition-all text-sm" />
+                  </div>
+                  
+                  {/* НОВЕ ПОЛЕ: Коментар до замовлення */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Коментар до замовлення (необов'язково):</label>
+                    <textarea 
+                      placeholder="Ваші побажання, колір, час доставки тощо..." 
+                      value={comment} 
+                      onChange={(e) => setComment(e.target.value)}
+                      rows={2}
+                      className="w-full p-3 border-2 border-blue-100 rounded-xl focus:border-blue-600 outline-none transition-all text-sm resize-none"
+                    />
                   </div>
                 </div>
 
@@ -387,86 +403,39 @@ export default function App() {
       {selectedProduct && (
         <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-6 md:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button 
-              onClick={() => setSelectedProduct(null)} 
-              className="absolute top-4 right-6 text-3xl text-gray-400 hover:text-red-500 transition"
-            >
-              &times;
-            </button>
-            
+            <button onClick={() => setSelectedProduct(null)} className="absolute top-4 right-6 text-3xl text-gray-400 hover:text-red-500 transition">&times;</button>
             <div className="flex flex-col items-center text-center mt-2">
               <div className="h-56 w-full max-w-[240px] mb-6 flex items-center justify-center bg-gray-50 rounded-2xl p-4 overflow-hidden">
-                <img 
-                  src={selectedProduct.image || selectedProduct.Картинка || selectedProduct.Фото || ''} 
-                  className="max-h-full max-w-full object-contain" 
-                  alt={selectedProduct.title || selectedProduct.Название} 
-                />
+                <img src={selectedProduct.image || selectedProduct.Картинка || selectedProduct.Фото || ''} className="max-h-full max-w-full object-contain" alt={selectedProduct.title || selectedProduct.Название} />
               </div>
-              
-              <h2 className="text-xl font-black text-gray-800 mb-3 px-2">
-                {selectedProduct.title || selectedProduct.Название || selectedProduct.Найменування}
-              </h2>
-              
+              <h2 className="text-xl font-black text-gray-800 mb-3 px-2">{selectedProduct.title || selectedProduct.Название || selectedProduct.Найменування}</h2>
               <div className="text-lg font-black text-blue-600 mb-4 bg-blue-50 px-4 py-1.5 rounded-full">
                 {(() => {
                   const rPrice = Number(selectedProduct.price || selectedProduct.Цена || selectedProduct.Ціна || 0);
                   const oMin = Number(selectedProduct.Опт_Количество || selectedProduct.opt_count || 0);
                   const oPrice = Number(selectedProduct.Опт_Цена || selectedProduct.opt_price || 0);
                   const activeQty = modalQuantity === '' ? 1 : Number(modalQuantity);
-                  
                   return (oMin > 0 && oPrice > 0 && activeQty >= oMin) ? oPrice : rPrice;
                 })()} грн
               </div>
-              
               <div className="text-left w-full bg-gray-50 p-4 rounded-2xl border border-gray-100 mb-6">
                 <h3 className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Опис товару:</h3>
-                <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">
-                  {selectedProduct.description || selectedProduct.Описание || selectedProduct.Опис || 'Опис для цього товару поки що відсутній.'}
-                </p>
+                <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">{selectedProduct.description || selectedProduct.Описание || selectedProduct.Опис || 'Опис для цього товару поки що відсутній.'}</p>
               </div>
-              
               <div className="w-full flex items-center gap-3">
                 <div className="flex items-center justify-between bg-gray-100 rounded-2xl p-1.5 flex-1 max-w-[140px]">
-                  <button 
-                    onClick={() => setModalQuantity(q => (Number(q) > 1 ? Number(q) - 1 : 1))} 
-                    className="w-10 h-10 flex items-center justify-center bg-white rounded-xl font-black text-gray-600 hover:bg-gray-200 active:scale-95 transition-all"
-                  >
-                    -
-                  </button>
-                  
-                  <input 
-                    type="number" 
-                    value={modalQuantity}
-                    onChange={(e) => handleModalInputChange(e.target.value)}
-                    onBlur={handleModalBlur}
-                    className="w-12 bg-transparent text-center font-bold text-sm text-gray-800 outline-none border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                  
-                  <button 
-                    onClick={() => setModalQuantity(q => Number(q) + 1)} 
-                    className="w-10 h-10 flex items-center justify-center bg-white rounded-xl font-black text-gray-600 hover:bg-gray-200 active:scale-95 transition-all"
-                  >
-                    +
-                  </button>
+                  <button onClick={() => setModalQuantity(q => (Number(q) > 1 ? Number(q) - 1 : 1))} className="w-10 h-10 flex items-center justify-center bg-white rounded-xl font-black text-gray-600 hover:bg-gray-200 active:scale-95 transition-all">-</button>
+                  <input type="number" value={modalQuantity} onChange={(e) => handleModalInputChange(e.target.value)} onBlur={handleModalBlur} className="w-12 bg-transparent text-center font-bold text-sm text-gray-800 outline-none border-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                  <button onClick={() => setModalQuantity(q => Number(q) + 1)} className="w-10 h-10 flex items-center justify-center bg-white rounded-xl font-black text-gray-600 hover:bg-gray-200 active:scale-95 transition-all">+</button>
                 </div>
-
-                <button 
-                  onClick={() => {
-                    const finalQty = modalQuantity === '' ? 1 : Number(modalQuantity);
-                    addToCart(selectedProduct, finalQty);
-                    setSelectedProduct(null);
-                  }} 
-                  className="flex-1 bg-blue-600 text-white py-3.5 rounded-2xl font-black shadow-lg hover:bg-blue-700 active:scale-95 transition-all text-md"
-                >
-                  Додати в кошик
-                </button>
+                <button onClick={() => { const finalQty = modalQuantity === '' ? 1 : Number(modalQuantity); addToCart(selectedProduct, finalQty); setSelectedProduct(null); }} className="flex-1 bg-blue-600 text-white py-3.5 rounded-2xl font-black shadow-lg hover:bg-blue-700 active:scale-95 transition-all text-md">Додати в кошик</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* МОДАЛКА УСПЕХА */}
+      {/* МОДАЛКА УСПІХУ */}
       {isSuccessOpen && (
         <div className="fixed inset-0 bg-black/60 z-[120] flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl text-center">
