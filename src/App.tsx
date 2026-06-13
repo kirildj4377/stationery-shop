@@ -222,32 +222,42 @@ export default function App() {
         </div>
       </header>
 
-      {/* Пошук та категорії */}
-      <div className="p-6 max-w-xl mx-auto space-y-3">
-        <input 
-          className="w-full p-4 rounded-2xl border-2 border-gray-200 shadow-sm outline-none focus:border-blue-500 transition-all text-lg"
-          placeholder="Пошук товарів за назвою..."
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        
-        {/* Кнопки категорій — тепер адаптивна хмара, де видно все й одразу */}
-        <div className="flex flex-wrap gap-2 pt-2 justify-center">
-          {categories.map((cat, idx) => (
-            <button
-              key={idx}
-              onClick={() => {
-                setSelectedCategory(cat);
+     {/* Контейнер пошуку та випадаючого списку категорій */}
+      <div className="p-6 max-w-2xl mx-auto">
+        <div className="flex flex-col sm:flex-row gap-2 bg-white p-2 rounded-2xl border-2 border-gray-200 shadow-sm focus-within:border-blue-500 transition-all">
+          
+          {/* Випадаючий список категорій (ліворуч) */}
+          <div className="relative min-w-[180px] sm:border-r-2 sm:border-gray-100 sm:pr-2">
+            <select
+              value={selectedCategory}
+              onChange={(e) => {
+                setSelectedCategory(e.target.value);
                 setVisibleCount(15);
               }}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border shadow-sm active:scale-95 ${
-                selectedCategory === cat
-                  ? 'bg-blue-600 text-white border-blue-600 font-black'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:bg-blue-50/50'
-              }`}
+              className="w-full h-full p-3 bg-transparent font-bold text-sm text-gray-700 outline-none cursor-pointer appearance-none pr-8"
             >
-              {cat}
-            </button>
-          ))}
+              {categories.map((cat, idx) => (
+                <option key={idx} value={cat} className="font-sans text-gray-800">
+                  {cat === 'Всі' ? '📁 Всі категорії' : cat}
+                </option>
+              ))}
+            </select>
+            {/* Кастомна стрілочка для гарного вигляду select */}
+            <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center px-2 text-gray-500">
+              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+              </svg>
+            </div>
+          </div>
+
+          {/* Поле пошуку товарів (праворуч) */}
+          <input 
+            className="w-full flex-1 p-3 outline-none text-md bg-transparent text-gray-800 placeholder-gray-400"
+            placeholder="Пошук товарів за назвою..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          
         </div>
       </div>
 
