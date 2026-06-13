@@ -1,11 +1,11 @@
 // @ts-nocheck
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Papa from 'papaparse';
-   
+
 const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQhmHMwhHGRSFSsptZUHbQv0CWRmckGz6OrhBsqra4wwsPZ1uweXGhq02Ba0bSeYw4cWT44q160EBEx/pub?output=csv';
 
-// Компонент картки товару з ручним та кнопковим вводом кількості
+// Компонент карточки товара
 function ProductCard({ item, onAddToCart, onOpenDetails }) {
   const [quantity, setQuantity] = useState(1);
 
@@ -105,7 +105,7 @@ export default function App() {
   const [isDeliveryOpen, setIsDeliveryOpen] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
   
-  // Детальний перегляд та окремий стейт для кількості в модалці
+  // Детальный просмотр товара
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [modalQuantity, setModalQuantity] = useState(1);
 
@@ -113,9 +113,24 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Всі');
   
+  // Состояние открытия красивого кастомного дропдауна
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
   const [userName, setUserName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+
+  // Закрытие дропдауна при клике вне его области
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -182,8 +197,8 @@ export default function App() {
       return `- ${title} (${item.count} шт) — ${singlePrice * item.count} грн ${isOpt ? '[ОПТ] 🔥' : ''}`;
     }).join('\n');
 
-    const total = cart.reduce((sum, item) => sum + (getItemPrice(item) * item.count), 0);
-    const message = `🛒 НОВЕ ЗАМОВЛЕННЯ\n\n👤 Клієнт: ${userName}\n📞 Телефон: ${phone}\n🚚 Адреса: ${address}\n\n📦 Товари:\n${itemsList}\n\n💰 РАЗОМ: ${total} грн`;
+    const totalOrderAmount = cart.reduce((sum, item) => sum + (getItemPrice(item) * item.count), 0);
+    const message = `🛒 НОВЕ ЗАМОВЛЕННЯ\n\n👤 Клієнт: ${userName}\n📞 Телефон: ${phone}\n🚚 Адреса: ${address}\n\n📦 Товари:\n${itemsList}\n\n💰 РАЗОМ: ${totalOrderAmount} грн`;
 
     try {
       await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, { chat_id: chatId, text: message });
@@ -222,35 +237,50 @@ export default function App() {
         </div>
       </header>
 
-     {/* Контейнер пошуку та випадаючого списку категорій */}
+      {/* Контейнер поиска и нового КРАСИВОГО выпадающего списка */}
       <div className="p-6 max-w-2xl mx-auto">
-        <div className="flex flex-col sm:flex-row gap-2 bg-white p-2 rounded-2xl border-2 border-gray-200 shadow-sm focus-within:border-blue-500 transition-all">
+        <div className="flex flex-col sm:flex-row gap-2 bg-white p-2 rounded-2xl border-2 border-gray-200 shadow-sm focus-within:border-blue-500 transition-all relative">
           
-          {/* Випадаючий список категорій (ліворуч) */}
-          <div className="relative min-w-[180px] sm:border-r-2 sm:border-gray-100 sm:pr-2">
-            <select
-              value={selectedCategory}
-              onChange={(e) => {
-                setSelectedCategory(e.target.value);
-                setVisibleCount(15);
-              }}
-              className="w-full h-full p-3 bg-transparent font-bold text-sm text-gray-700 outline-none cursor-pointer appearance-none pr-8"
+          {/* Кастомный Дропдаун */}
+          <div className="relative min-w-[210px] sm:border-r-2 sm:border-gray-100 sm:pr-2" ref={dropdownRef}>
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="w-full h-full p-3 flex items-center justify-between font-bold text-sm text-gray-700 bg-gray-50/50 rounded-xl hover:bg-gray-100/70 transition-all"
             >
-              {categories.map((cat, idx) => (
-                <option key={idx} value={cat} className="font-sans text-gray-800">
-                  {cat === 'Всі' ? '📁 Всі категорії' : cat}
-                </option>
-              ))}
-            </select>
-            {/* Кастомна стрілочка для гарного вигляду select */}
-            <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center px-2 text-gray-500">
-              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+              <span className="truncate">
+                {selectedCategory === 'Всі' ? '📁 Всі категорії' : `📂 ${selectedCategory}`}
+              </span>
+              <svg className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
-            </div>
+            </button>
+
+            {/* Красивое скругленное плавающее меню */}
+            {isDropdownOpen && (
+              <div className="absolute left-0 mt-2 w-full sm:w-64 bg-white border border-gray-100 rounded-2xl shadow-xl z-[90] max-h-80 overflow-y-auto p-1.5 space-y-0.5 animate-fadeIn">
+                {categories.map((cat, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setSelectedCategory(cat);
+                      setIsDropdownOpen(false);
+                      setVisibleCount(15);
+                    }}
+                    className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+                      selectedCategory === cat
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-100'
+                        : 'text-gray-700 hover:bg-blue-50 hover:text-blue-600'
+                    }`}
+                  >
+                    <span className="text-xs">{cat === 'Всі' ? '📁' : '📄'}</span>
+                    <span className="truncate">{cat}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Поле пошуку товарів (праворуч) */}
+          {/* Строка поиска */}
           <input 
             className="w-full flex-1 p-3 outline-none text-md bg-transparent text-gray-800 placeholder-gray-400"
             placeholder="Пошук товарів за назвою..."
@@ -261,7 +291,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* Сітка товарів */}
+      {/* Сетка товаров */}
       <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 p-4">
         {filtered.slice(0, visibleCount).map((item, idx) => (
           <ProductCard 
@@ -273,7 +303,7 @@ export default function App() {
         ))}
       </div>
 
-      {/* Показати ще */}
+      {/* Показать еще */}
       {visibleCount < filtered.length && (
         <button 
           onClick={() => setVisibleCount(v => v + 15)}
@@ -292,7 +322,7 @@ export default function App() {
          <p className="text-gray-400 text-xs">© 2026 Магазин Канцтоварів. Всі права захищені.</p>
       </footer>
 
-      {/* МОДАЛКА КОРЗИНИ */}
+      {/* МОДАЛКА КОРЗИНЫ */}
       {isCartOpen && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex justify-end backdrop-blur-sm">
           <div className="bg-white w-full max-w-md h-full p-6 shadow-2xl flex flex-col justify-between">
@@ -353,7 +383,7 @@ export default function App() {
         </div>
       )}
 
-      {/* МОДАЛКА ДЕТАЛЬНОГО ПЕРЕГЛЯДУ ТОВАРА */}
+      {/* МОДАЛКА ДЕТАЛЬНОГО ПРОСМОТРА ТОВАРА */}
       {selectedProduct && (
         <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-6 md:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
@@ -395,7 +425,6 @@ export default function App() {
                 </p>
               </div>
               
-              {/* Зручний лічильник із вводом + Кнопка додавання */}
               <div className="w-full flex items-center gap-3">
                 <div className="flex items-center justify-between bg-gray-100 rounded-2xl p-1.5 flex-1 max-w-[140px]">
                   <button 
@@ -437,7 +466,7 @@ export default function App() {
         </div>
       )}
 
-      {/* МОДАЛКА УСПІХУ */}
+      {/* МОДАЛКА УСПЕХА */}
       {isSuccessOpen && (
         <div className="fixed inset-0 bg-black/60 z-[120] flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl text-center">
@@ -469,8 +498,8 @@ export default function App() {
             <h2 className="text-2xl font-black mb-4 text-blue-600">Доставка та оплата 🚚</h2>
             <div className="text-gray-600 space-y-3 mb-6 text-sm">
               <p>📍 <strong>Нова Пошта:</strong> Відправка щодня.</p>
-              <p>📍 <strong>Кур'єр:</strong> 1000 грн, тільки у Харкові.</p>
-              <p>💳 <strong>Оплата:</strong> На рахунок або при отриманні.</p>
+              <p>📍 <strong>Укрпошта:</strong> Відправка Пн, Ср, Пт.</p>
+              <p>💳 <strong>Оплата:</strong> На картку або при отриманні.</p>
             </div>
             <button onClick={() => setIsDeliveryOpen(false)} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black">Окей</button>
           </div>
